@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>网格坐标点标记</title>
+    <title>Project SEKAI Mysekai Xray</title>
     <script>
         const SCENES = {
             scene1: {
@@ -253,31 +253,31 @@
 <body>
     <div class="container">
         <div class="image-container">
-            <img src="image.png" alt="示例图片" id="image">
+            <img src="image.png" alt="Sample" id="image">
             <canvas class="grid-canvas" id="gridCanvas"></canvas>
         </div>
     </div>
 
     <div class="controls">
-        <label for="physicalWidth">网格宽度(px):</label>
+        <label for="physicalWidth">Grid Width(px):</label>
         <input type="number" id="physicalWidth" value="10" min="1" step="1">
-        <label for="offsetX">原点X偏移(px):</label>
+        <label for="offsetX">X Offset(px):</label>
         <input type="number" id="offsetX" value="0" step="1">
-        <label for="offsetY">原点Y偏移(px):</label>
+        <label for="offsetY">Y Offset(px):</label>
         <input type="number" id="offsetY" value="0" step="1">
-        <button onclick="drawGrid()">绘制网格</button>
-        <button onclick="clearGrid()">清除网格</button>
+        <button onclick="drawGrid()">Draw Grid</button>
+        <button onclick="clearGrid()">Clear Grid</button>
         <br>
-        <textarea id="jsonInput" placeholder="请输入JSON数据"></textarea>
-        <button onclick="parseAndMarkPoints()">标记坐标点</button>
-        <label for="sceneSelect">选择场景:</label>
+        <textarea id="jsonInput" placeholder="Input your json here"></textarea>
+        <button onclick="parseAndMarkPoints()">Mark Points</button>
+        <label for="sceneSelect">Select Scene:</label>
         <select id="sceneSelect">
             <option value="scene1">さいしょの原っぱ</option>
             <option value="scene2">彩りの花畑</option>
             <option value="scene3">願いの砂浜</option>
             <option value="scene4">忘れ去られた場所</option>
         </select>
-        <button onclick="applyScene()">应用场景</button>
+        <button onclick="applyScene()">Apply the scene</button>
 
         <div class="direction-buttons">
             <button onclick="setDirection('x+', 'y+')">X+ Y+</button>
