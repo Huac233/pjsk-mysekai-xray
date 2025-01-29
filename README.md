@@ -1,2 +1,3 @@
 # pjsk-mysekai-xray
-You know the rules and so do I
+Usage: dump json -> input into web -> click -> item mapping  
+How to get the json: by yourself
