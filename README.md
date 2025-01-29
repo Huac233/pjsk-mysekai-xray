@@ -1,3 +1,4 @@
 # pjsk-mysekai-xray
 Usage: dump json -> input into web -> click -> item mapping  
-How to get the json: by yourself
+How to get the json: by yourself  
+Site: https://middlered.github.io/pjsk-mysekai-xray/paint.html
