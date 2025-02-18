@@ -8,6 +8,8 @@ from msgspec import Struct as BaseModel
 
 import httpx
 
+MYSEKAI_PROFILE_JSON_PATH: Path = Path("mysekai.json")
+
 class GridSize(BaseModel):
     width: int
     depth: int
@@ -45,8 +47,8 @@ class ModelItem(BaseModel, kw_only=True):
     isGameCharacterAction: bool
     assetbundleName: str
 
-#mysekaifixture = httpx.get("https://github.com/Sekai-World/sekai-master-db-diff/blob/main/mysekaiFixtures.json").text()
-mysekaifixture = Path("db/mysekaiFixtures.json").read_text(encoding="utf-8")
+mysekaifixture = httpx.get("https://github.com/Sekai-World/sekai-master-db-diff/blob/main/mysekaiFixtures.json").text()
+# mysekaifixture = Path("db/mysekaiFixtures.json").read_text(encoding="utf-8")
 
 FIXTURE = msgspec.json.decode(mysekaifixture, type=List[ModelItem])
 
@@ -99,8 +101,8 @@ class ItemDetail(BaseModel):
     description: str
     iconAssetbundleName: str
 
-#mysekaiitems = httpx.get("https://github.com/Sekai-World/sekai-master-db-diff/raw/refs/heads/main/mysekaiItems.json").text()
-mysekaiitems = Path("db/mysekaiitems.json").read_text(encoding="utf-8")
+mysekaiitems = httpx.get("https://github.com/Sekai-World/sekai-master-db-diff/raw/refs/heads/main/mysekaiItems.json").text()
+# mysekaiitems = Path("db/mysekaiitems.json").read_text(encoding="utf-8")
 
 ITEMS = msgspec.json.decode(mysekaiitems, type=List[ItemDetail])
 
@@ -118,8 +120,8 @@ class MaterialDetail(BaseModel, kw_only=True):
     mysekaiSiteIds: List[int]
     mysekaiPhenomenaGroupId: Optional[int] = None
 
-# mysekaimetarials = httpx.get("https://github.com/Sekai-World/sekai-master-db-diff/raw/refs/heads/main/mysekaiMaterials.json").text()
-mysekaimetarials = Path("db/mysekaiMaterials.json").read_text(encoding="utf-8")
+mysekaimetarials = httpx.get("https://github.com/Sekai-World/sekai-master-db-diff/raw/refs/heads/main/mysekaiMaterials.json").text()
+# mysekaimetarials = Path("db/mysekaiMaterials.json").read_text(encoding="utf-8")
 
 METERIALS = msgspec.json.decode(mysekaimetarials, type=List[MaterialDetail])
 
@@ -132,13 +134,13 @@ class HarvestObjectDetail(BaseModel):
     mysekaiSiteHarvestFixtureRarityType: str
     assetbundleName: str
 
-# mysekaisiteharvestfixtures = httpx.get("https://github.com/Sekai-World/sekai-master-db-diff/raw/refs/heads/main/mysekaiSiteHarvestFixtures.json").text()
-mysekaimetarials = Path("db/mysekaiSiteHarvestFixtures.json").read_text(encoding="utf-8")
+mysekaisiteharvestfixtures = httpx.get("https://github.com/Sekai-World/sekai-master-db-diff/raw/refs/heads/main/mysekaiSiteHarvestFixtures.json").text()
+# mysekaimetarials = Path("db/mysekaiSiteHarvestFixtures.json").read_text(encoding="utf-8")
 
 HARVEST_OBJECTS = msgspec.json.decode(mysekaimetarials, type=List[HarvestObjectDetail])
 
 
-user_data = msgspec.json.decode(Path("mysekai.json").read_text(encoding="utf-8"))
+user_data = msgspec.json.decode(MYSEKAI_PROFILE_JSON_PATH.read_text(encoding="utf-8"))
 
 assert user_data["updatedResources"]["userMysekaiHarvestMaps"]
 
@@ -179,4 +181,5 @@ for mp in harvest_maps:
             mp_detail[i]["reward"][drop.resourceType][drop.resourceId] = \
                 mp_detail[i]["reward"][drop.resourceType].get(drop.resourceId, 0) + drop.quantity
             break
+
     print(json.dumps(mp_detail))

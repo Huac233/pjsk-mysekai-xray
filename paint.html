@@ -3,40 +3,41 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Project SEKAI Mysekai Xray</title>
+    <title>Project SEKAI - MySekai Xray</title>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
     <script>
         const SCENES = {
             scene1: {
-                physicalWidth: 32.734,
+                physicalWidth: 33.333,
                 offsetX: 0,
-                offsetY: -25,
+                offsetY: -40,
                 imagePath: "img/grassland.png",
                 xDirection: 'x-',
                 yDirection: 'y-',
                 reverseXY: true,
             },
             scene2: {
-                physicalWidth: 25.5,
-                offsetX: -50,
-                offsetY: 12,
+                physicalWidth: 24.806,
+                offsetX: -62.015,
+                offsetY: 20.672,
                 imagePath: "img/flowergarden.png",
                 xDirection: 'x-',
                 yDirection: 'y-',
                 reverseXY: true,
             },
             scene3: {
-                physicalWidth: 20.95,
+                physicalWidth: 20.513,
                 offsetX: 0,
-                offsetY: 50,
+                offsetY: 80,
                 imagePath: "img/beach.png",
                 xDirection: 'x+',
                 yDirection: 'y-',
                 reverseXY: false,
             },
             scene4: {
-                physicalWidth: 20.95,
+                physicalWidth: 21.333,
                 offsetX: 0,
-                offsetY: -125,
+                offsetY: -106.667,
                 imagePath: "img/memorialplace.png",
                 xDirection: 'x+',
                 yDirection: 'y-',
@@ -86,6 +87,10 @@
             5002: '#f6f5f2',
             5003: '#f6f5f2',
             5004: '#f6f5f2',
+            5101: '#f6f5f2',
+            5102: '#f6f5f2',
+            5103: '#f6f5f2',
+            5104: '#f6f5f2',
 
             6001: '#6f4e37',
 
@@ -162,7 +167,7 @@
         };
 
         const SUPER_RARE_ITEM = {
-            mysekai_material: [5,12,20], 
+            mysekai_material: [5,12,20,24], 
             mysekai_item: [], 
             mysekai_fixture: [],
             mysekai_music_record: []
@@ -253,23 +258,15 @@
 <body>
     <div class="container">
         <div class="image-container">
-            <img src="image.png" alt="Sample" id="image">
+            <img src="image.png" alt="示例图片" id="image">
             <canvas class="grid-canvas" id="gridCanvas"></canvas>
         </div>
     </div>
 
     <div class="controls">
-        <label for="physicalWidth">Grid Width(px):</label>
-        <input type="number" id="physicalWidth" value="10" min="1" step="1">
-        <label for="offsetX">X Offset(px):</label>
-        <input type="number" id="offsetX" value="0" step="1">
-        <label for="offsetY">Y Offset(px):</label>
-        <input type="number" id="offsetY" value="0" step="1">
-        <button onclick="drawGrid()">Draw Grid</button>
-        <button onclick="clearGrid()">Clear Grid</button>
+       
+        <textarea id="jsonInput" placeholder="请输入JSON数据"></textarea>
         <br>
-        <textarea id="jsonInput" placeholder="Input your json here"></textarea>
-        <button onclick="parseAndMarkPoints()">Mark Points</button>
         <label for="sceneSelect">Select Scene:</label>
         <select id="sceneSelect">
             <option value="scene1">さいしょの原っぱ</option>
@@ -277,17 +274,64 @@
             <option value="scene3">願いの砂浜</option>
             <option value="scene4">忘れ去られた場所</option>
         </select>
-        <button onclick="applyScene()">Apply the scene</button>
-
-        <div class="direction-buttons">
-            <button onclick="setDirection('x+', 'y+')">X+ Y+</button>
-            <button onclick="setDirection('x+', 'y-')">X+ Y-</button>
-            <button onclick="setDirection('x-', 'y+')">X- Y+</button>
-            <button onclick="setDirection('x-', 'y-')">X- Y-</button>
-        </div>
+        <button onclick="applyScene()">Apply Scene</button>
+        <br>
+        <button onclick="parseAndMarkPoints()">Mark Points</button>
+        <button onclick="captureScreenshot()">Screenshot</button>
+        <br><br>
+        <details>
+            <summary>Advance Settings</summary>
+            <label for="physicalWidth">Grid Width(px):</label>
+            <input type="number" id="physicalWidth" value="10" min="1" step="1">
+            <label for="offsetX">X Offset(px):</label>
+            <input type="number" id="offsetX" value="0" step="1">
+            <label for="offsetY">Y Offset(px):</label>
+            <input type="number" id="offsetY" value="0" step="1">
+            <button onclick="drawGrid()">Draw Grid</button>
+            <button onclick="clearGrid()">Clear Canvas</button>
+            <br>
+            <div class="direction-buttons">
+                <button onclick="setDirection('x+', 'y+')">X+ Y+</button>
+                <button onclick="setDirection('x+', 'y-')">X+ Y-</button>
+                <button onclick="setDirection('x-', 'y+')">X- Y+</button>
+                <button onclick="setDirection('x-', 'y-')">X- Y-</button>
+            </div>
+        </details>
     </div>
 
     <script>
+        // import html2canvas from 'html2canvas';
+        async function captureScreenshot() {
+            const container = document.querySelector('.container');
+
+            // 获取container的位置信息
+            const rect = container.getBoundingClientRect();
+            
+            function screenshot(canvas) {
+                // 将截图转换为图片
+                const imgData = canvas.toDataURL('image/png');
+
+                // 创建一个下载链接
+                const link = document.createElement('a');
+                link.href = imgData;
+                link.download = 'screenshot.png'; // 设置下载的文件名
+
+                // 触发点击事件，自动下载截图
+                link.click();
+            }
+
+            // 获取整个document内容
+            cav = await html2canvas(document.body, {
+                x: rect.left + window.scrollX,  // 设置截图区域的左上角X坐标
+                y: rect.top + window.scrollY,   // 设置截图区域的左上角Y坐标
+                width: rect.width,              // 设置截图区域的宽度
+                height: rect.height,            // 设置截图区域的高度
+                scrollX: 0,                     // 关闭滚动条效果
+                scrollY: 0                      // 关闭滚动条效果
+            });
+            screenshot(cav);
+        }
+
         let xDirection = 'x+'; // 当前的X轴方向
         let yDirection = 'y-'; // 当前的Y轴方向
         let reverseXY = false; // 是否反转XY轴
@@ -306,8 +350,9 @@
                 reverseXY = selectedScene.reverseXY;
 
                 // 重新绘制网格和清空物品栏
-                drawGrid();
-                clearItemLists();
+
+                initCanvas();
+                // drawGrid();
             } else {
                 console.warn(`未找到场景: ${selectedSceneKey}`);
             }
@@ -326,6 +371,11 @@
             canvas.height = image.clientHeight;
         }
 
+        window.addEventListener('resize', () => {
+            initCanvas();
+            // drawGrid();  // 重新绘制网格
+        });
+
         function drawGrid() {
             const physicalGridWidth = parseFloat(physicalWidthInput.value);
             const offsetX = parseFloat(offsetXInput.value);
@@ -340,8 +390,7 @@
 
             const displayGridWidth = physicalGridWidth  * scaleX;
 
-            initCanvas();
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            // ctx.clearRect(0, 0, canvas.width, canvas.height);
 
             const originX = displayWidth / 2 + offsetX;
             const originY = displayHeight / 2 + offsetY;
@@ -401,7 +450,8 @@
                 if (!Array.isArray(points)) {
                     throw new Error("输入的JSON必须是一个数组");
                 }
-                drawGrid();
+                // drawGrid();
+                initCanvas();
                 clearItemLists();
 
                 if (!reverseXY){
@@ -469,7 +519,7 @@
                 }
 
                 // 显示奖励物品
-                displayReward(point.reward, displayX + displayGridWidth * 1.5, displayY + displayGridWidth / 1.25, ifContainRareItem);
+                displayReward(point.reward, displayX + displayGridWidth * 1.5, displayY + displayGridWidth / 1.2, ifContainRareItem);
 
             } else {
                 console.warn(`找不到fixtureID的颜色: ${point.fixtureId}`);
@@ -483,12 +533,26 @@
         function displayReward(reward, x, y, ifContainRareItem) {
             const itemList = document.createElement('div');
             itemList.className = 'item-list';
+
+            const container = document.querySelector('.container');
+            const containerWidth = container.offsetWidth;  // 获取容器的宽度
+            const screenWidth = window.innerWidth;  // 获取当前屏幕宽度
+
+            let xOffset = 0;
+            let yOffset = 0;
+
+            if (containerWidth >= 1920) {
+                const emptySpaceWidth = (screenWidth - 1920 - 80) / 2;  // 计算空白区域宽度（左右均分）
+                xOffset = emptySpaceWidth;
+                yOffset = -10;
+            }
+
             if (reverseXY) {
-                itemList.style.left = `${x}px`;
-                itemList.style.top = `${y - 10}px`; // Centered vertically
+                itemList.style.left = `${x + xOffset}px`;
+                itemList.style.top = `${y - 10 + yOffset}px`; // Centered vertically
             } else {
-                itemList.style.left = `${x}px`;
-                itemList.style.top = `${y}px`;
+                itemList.style.left = `${x + xOffset}px`;
+                itemList.style.top = `${y + yOffset}px`;
             }
 
             for (const category in reward) {
