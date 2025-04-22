@@ -32,6 +32,7 @@ files = {
     "62": "./icon/Texture2D/item_junk_11.png",
     "63": "./icon/Texture2D/item_junk_12.png",
     "64": "./icon/Texture2D/item_mineral_9.png",
+    "65": "./icon/Texture2D/item_mineral_10.png",
     "_7": "./icon/Texture2D/item_blueprint_fragment.png",
      "118": "./icon/Texture2D/mdl_non1001_before_sapling1_118.png",
     "119": "./icon/Texture2D/mdl_non1001_before_sapling1_119.png",
