@@ -1,6 +1,5 @@
 # pjsk-mysekai-xray
-Usage: pass raw json in `parse.py` -> input into web -> item mapping  
-How to get the json: caputure the network packet and decrypt it by yourself  
+Usage: run `parse.py` in mitmproxy (fill the necessary thing first) -> input json dump into web -> item mapping  
 Site: https://middlered.github.io/pjsk-mysekai-xray/paint.html  
 ## Special thanks
 GPT-4o mini - 写了 90% 的 html 代码。  
