@@ -1,3 +1,32 @@
+# run this file with the following command:
+# pip install loguru msgspec msgpack mitmproxy
+# mitmweb --mode wireguard -s mitm.py --set ignore_hosts=icloud.com.cn --set ignore_hosts=apple.com
+
+AES_KEY = None
+AES_IV = None
+
+assert AES_KEY is not None, "Please find and fill the AES_KEY by yourself!"
+assert AES_KEY is not None, "Please find and fill the AES_IV by yourself!"
+
+import os, sys
+
+import mitmproxy.http
+import mitmproxy.udp
+import mitmproxy.tcp
+import mitmproxy.dns
+from msgpack import packb, unpackb
+from Crypto.Cipher import AES
+from Crypto.Util.Padding import pad, unpad
+
+import asyncio
+
+import json, textwrap, time, base64
+from pathlib import Path
+from subprocess import Popen, PIPE, CREATE_NEW_CONSOLE
+
+from loguru import logger
+
+
 import json
 from pathlib import Path
 
@@ -6,9 +35,6 @@ from typing import List, Optional
 import msgspec
 from msgspec import Struct as BaseModel
 
-import httpx
-
-MYSEKAI_PROFILE_JSON_PATH: Path = Path("mysekai.json")
 
 class GridSize(BaseModel):
     width: int
@@ -47,10 +73,6 @@ class ModelItem(BaseModel, kw_only=True):
     isGameCharacterAction: bool
     assetbundleName: str
 
-mysekaifixture = httpx.get("https://github.com/Sekai-World/sekai-master-db-diff/blob/main/mysekaiFixtures.json").text()
-# mysekaifixture = Path("db/mysekaiFixtures.json").read_text(encoding="utf-8")
-
-FIXTURE = msgspec.json.decode(mysekaifixture, type=List[ModelItem])
 
 
 class UserMysekaiSiteHarvestFixture(BaseModel):
@@ -101,10 +123,7 @@ class ItemDetail(BaseModel):
     description: str
     iconAssetbundleName: str
 
-mysekaiitems = httpx.get("https://github.com/Sekai-World/sekai-master-db-diff/raw/refs/heads/main/mysekaiItems.json").text()
-# mysekaiitems = Path("db/mysekaiitems.json").read_text(encoding="utf-8")
 
-ITEMS = msgspec.json.decode(mysekaiitems, type=List[ItemDetail])
 
 
 class MaterialDetail(BaseModel, kw_only=True):
@@ -120,10 +139,7 @@ class MaterialDetail(BaseModel, kw_only=True):
     mysekaiSiteIds: List[int]
     mysekaiPhenomenaGroupId: Optional[int] = None
 
-mysekaimetarials = httpx.get("https://github.com/Sekai-World/sekai-master-db-diff/raw/refs/heads/main/mysekaiMaterials.json").text()
-# mysekaimetarials = Path("db/mysekaiMaterials.json").read_text(encoding="utf-8")
 
-METERIALS = msgspec.json.decode(mysekaimetarials, type=List[MaterialDetail])
 
 
 class HarvestObjectDetail(BaseModel):
@@ -134,52 +150,128 @@ class HarvestObjectDetail(BaseModel):
     mysekaiSiteHarvestFixtureRarityType: str
     assetbundleName: str
 
-mysekaisiteharvestfixtures = httpx.get("https://github.com/Sekai-World/sekai-master-db-diff/raw/refs/heads/main/mysekaiSiteHarvestFixtures.json").text()
-# mysekaimetarials = Path("db/mysekaiSiteHarvestFixtures.json").read_text(encoding="utf-8")
-
-HARVEST_OBJECTS = msgspec.json.decode(mysekaimetarials, type=List[HarvestObjectDetail])
 
 
-user_data = msgspec.json.decode(MYSEKAI_PROFILE_JSON_PATH.read_text(encoding="utf-8"))
+def parse_map(user_data: dict):
+    assert user_data["updatedResources"]["userMysekaiHarvestMaps"]
 
-assert user_data["updatedResources"]["userMysekaiHarvestMaps"]
+    harvest_maps: List[Map] = [ 
+        msgspec.json.decode(msgspec.json.encode(mp), type=Map) for mp in user_data["updatedResources"]["userMysekaiHarvestMaps"]
+    ]
 
-harvest_maps: List[Map] = [ 
-    msgspec.json.decode(msgspec.json.encode(mp), type=Map) for mp in user_data["updatedResources"]["userMysekaiHarvestMaps"]
-]
+    for mp in harvest_maps:
+        mp.siteName = SITE_ID[mp.mysekaiSiteId]
 
-for mp in harvest_maps:
-    mp.siteName = SITE_ID[mp.mysekaiSiteId]
-
-processed_map = {}
-for mp in harvest_maps:
-    print(f"Site: {mp.siteName}")
-    mp_detail = []
-    for fixture in mp.userMysekaiSiteHarvestFixtures:
-        #  spawned
-        #  harvested
-        if fixture.userMysekaiSiteHarvestFixtureStatus == "spawned":
-            mp_detail.append( 
-                {
-                    "location": (fixture.positionX, fixture.positionZ),
-                    "fixtureId": fixture.mysekaiSiteHarvestFixtureId,
-                    "reward": {}
-                }
-            )
-        
-    for drop in mp.userMysekaiSiteHarvestResourceDrops:
-        pos = (drop.positionX, drop.positionZ)
-        for i in range(0, len(mp_detail)):
-            if mp_detail[i]["location"] != pos:
-                continue
+    processed_map = {}
+    for mp in harvest_maps:
+        print(f"Site: {mp.siteName}")
+        mp_detail = []
+        for fixture in mp.userMysekaiSiteHarvestFixtures:
+            #  spawned
+            #  harvested
+            if fixture.userMysekaiSiteHarvestFixtureStatus == "spawned":
+                mp_detail.append( 
+                    {
+                        "location": (fixture.positionX, fixture.positionZ),
+                        "fixtureId": fixture.mysekaiSiteHarvestFixtureId,
+                        "reward": {}
+                    }
+                )
             
-            # mysekai_material
-            # mysekai_item
-            # mysekai_fixture
-            # mysekai_music_record
-            mp_detail[i]["reward"].setdefault(drop.resourceType, {})
-            mp_detail[i]["reward"][drop.resourceType][drop.resourceId] = \
-                mp_detail[i]["reward"][drop.resourceType].get(drop.resourceId, 0) + drop.quantity
-            break
+        for drop in mp.userMysekaiSiteHarvestResourceDrops:
+            pos = (drop.positionX, drop.positionZ)
+            for i in range(0, len(mp_detail)):
+                if mp_detail[i]["location"] != pos:
+                    continue
+                
+                # mysekai_material
+                # mysekai_item
+                # mysekai_fixture
+                # mysekai_music_record
+                mp_detail[i]["reward"].setdefault(drop.resourceType, {})
+                mp_detail[i]["reward"][drop.resourceType][drop.resourceId] = \
+                    mp_detail[i]["reward"][drop.resourceType].get(drop.resourceId, 0) + drop.quantity
+                break
+        
+        processed_map[mp.siteName] = mp_detail
+    
+    return processed_map
 
-    print(json.dumps(mp_detail))
+
+def unmsgpack(data: bytes) -> dict:
+    return unpackb(data, strict_map_key=False) if len(data) > 0 else {}
+
+def decrypt(ciphertext: bytes, key: bytes, iv: bytes) -> bytes:
+    cipher = AES.new(key, AES.MODE_CBC, iv=iv)
+    plaintext: bytes = unpad(cipher.decrypt(ciphertext), 16)
+    return plaintext
+
+def encrypt(plaintext: bytes, key: bytes, iv: bytes) -> bytes:
+    cipher = AES.new(key, AES.MODE_CBC, iv=iv)
+    ciphertext: bytes = cipher.encrypt(pad(plaintext, 16))
+    return ciphertext
+
+class Inspector:
+    def __init__(self):
+        logger.remove()
+        self.log = logger.opt(colors=True)
+        self.raw_log = logger
+        self.process = Popen([
+            sys.executable, "-c", textwrap.dedent("""
+                import sys
+                sys.stdout.reconfigure(encoding='utf-8')
+                for line in sys.stdin: # poor man's `cat`
+                    sys.stderr.write(line)
+                    sys.stderr.flush()
+                """)],
+            stdin = PIPE, 
+            bufsize = 1, 
+            universal_newlines = True,
+            creationflags = CREATE_NEW_CONSOLE
+        )
+        logger.add(self.process.stdin,colorize=True, format="<green>{time:HH:mm:ss.SSSSSS}</green> <level>{message}</level>")
+    
+    def done(self):
+        self.log.stop()
+        self.process.communicate("bye\n")
+
+    def response(self, flow: mitmproxy.http.HTTPFlow):
+        print(flow.request.host_header)
+        if flow.request.url.find("isForceAllReloadOnlyMysekai") == -1:
+            return
+        
+        def process():
+            self.log.info(f"<blue><b>[HTTP]</b></blue> <fg 128,128,128><b>{flow.request.method}</b></fg 128,128,128>: <C> {flow.request.url} </C>")
+            self.log.info(f"| Request Raw: {flow.request.content[:100]}")
+            try:
+                req_decrypted = unmsgpack(decrypt(flow.request.content, AES_KEY, AES_IV))
+                self.log.info(f"| Request Decrypted: {req_decrypted}")
+            except:
+                req_decrypted = base64.b64encode(flow.request.content).decode()
+                self.log.info(f"| Unable to decrypted Request : {req_decrypted}")
+            
+            self.raw_log.info(f"| Response Raw: {flow.response.content[:100]}")
+            try:
+                res_decrypted = unmsgpack(decrypt(flow.response.content, AES_KEY, AES_IV))
+                self.raw_log.info(f"| Response Decrypted: {str(res_decrypted)[:300]}")
+            except:
+                res_decrypted = base64.b64encode(flow.response.content).decode()
+                self.raw_log.info(f"| Unable to decrypted Response: {str(res_decrypted)[:300]}")
+                return
+
+            mysekai_info = res_decrypted
+            self.raw_log.info(str(mysekai_info.keys()))
+            if "updatedResources" not in mysekai_info.keys() or \
+                "userMysekaiHarvestMaps" not in mysekai_info["updatedResources"].keys():
+                return
+            
+            self.raw_log.info(f"| Find Harvest Maps Info")
+            result = parse_map(mysekai_info)
+            for k, v in result.items():
+                self.raw_log.info(f"| Site: {k} \n {json.dumps(v)}")
+        
+        asyncio.create_task(asyncio.to_thread(process))
+        
+addons = [
+    Inspector()
+]
