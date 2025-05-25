@@ -1,6 +1,6 @@
 # run this file with the following command:
 # pip install loguru msgspec msgpack mitmproxy
-# mitmweb --mode wireguard -s mitm.py --set ignore_hosts=icloud.com.cn --set ignore_hosts=apple.com
+# mitmweb --mode wireguard -s parse.py --set ignore_hosts=icloud.com.cn --set ignore_hosts=apple.com
 
 AES_KEY = None
 AES_IV = None
