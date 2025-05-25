@@ -2,11 +2,13 @@
 # pip install loguru msgspec msgpack mitmproxy
 # mitmweb --mode wireguard -s parse.py --set ignore_hosts=icloud.com.cn --set ignore_hosts=apple.com
 
-AES_KEY = None
-AES_IV = None
+# Fill these two thing first with format like: b'put_string_here' 
+AES_KEY = b'THE_KEY'
+AES_IV = b'THE_IV'
 
-assert AES_KEY is not None, "Please find and fill the AES_KEY by yourself!"
-assert AES_KEY is not None, "Please find and fill the AES_IV by yourself!"
+# You don't need to modify the following code if you don't care about it.
+assert AES_KEY == b'THE_KEY', "Please find and fill the AES_KEY by yourself!"
+assert AES_KEY == b'THE_IV', "Please find and fill the AES_IV by yourself!"
 
 import os, sys
 
