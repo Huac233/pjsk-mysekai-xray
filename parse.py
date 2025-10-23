@@ -3,8 +3,8 @@
 # mitmweb --mode wireguard -s parse.py --set ignore_hosts=icloud.com.cn --set ignore_hosts=apple.com
 
 # Fill these two thing first with format like: b'put_string_here' 
-AES_KEY = b'THE_KEY'
-AES_IV = b'THE_IV'
+AES_KEY = b"THE_KEY"
+AES_IV = b"THE_IV"
 
 # You don't need to modify the following code if you don't care about it.
 # assert AES_KEY == b'THE_KEY', "Please find and fill the AES_KEY by yourself!"
@@ -364,3 +364,4 @@ class Inspector:
 addons = [
     Inspector()
 ]
+
