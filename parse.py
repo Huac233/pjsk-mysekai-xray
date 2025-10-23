@@ -102,19 +102,30 @@ class Map(BaseModel, kw_only=True):
     userMysekaiSiteHarvestFixtures: List[UserMysekaiSiteHarvestFixture]
     userMysekaiSiteHarvestResourceDrops: List[UserMysekaiSiteHarvestResourceDrop]
 
+SUPER_RARE_ITEM = {
+    'mysekai_material': [5, 12, 20, 24],  # 夕桐、钻石、四叶草、空白的音色
+    'mysekai_item': [], 
+    'mysekai_fixture': [],
+    'mysekai_music_record': []
+}
+
+ITEM_NAMES = {
+    5: "夕桐",
+    12: "钻石", 
+    20: "四叶草",
+    24: "空白的音色"
+}
 
 SITE_ID = {
     1: "マイホーム",
     2: "1F",
     3: "2F",
     4: "3F",
-    5: "さいしょの原っぱ",
-    6: "願いの砂浜",
-    7: "彩りの花畑",
-    8: "忘れ去られた場所",
+    5: "初始空地",
+    6: "心愿沙滩",
+    7: "烂漫花田",
+    8: "忘却之所",
 }
-
-
 
 class ItemDetail(BaseModel):
     id: int
@@ -163,6 +174,7 @@ def parse_map(user_data: dict):
         harvest_maps_data = user_data["updatedResources"]["userMysekaiHarvestMaps"]
         
         processed_map = {}
+        rare_items_found = []  # 新增：存储重要掉落物
         
         print(f"开始处理 {len(harvest_maps_data)} 个地图数据")
         
@@ -216,6 +228,21 @@ def parse_map(user_data: dict):
                     mp_detail[i]["reward"].setdefault(resource_type, {})
                     mp_detail[i]["reward"][resource_type][resource_id] = \
                         mp_detail[i]["reward"][resource_type].get(resource_id, 0) + quantity
+                    
+                    # 新增：检查是否是重要物品 - 修复类型检查
+                    if (resource_type in SUPER_RARE_ITEM and 
+                        int(resource_id) in SUPER_RARE_ITEM[resource_type]):
+                        item_name = ITEM_NAMES.get(int(resource_id), f"未知物品 {resource_id}")
+                        rare_items_found.append({
+                            'site_name': site_name,
+                            'location': pos,
+                            'fixture_id': mp_detail[i]["fixtureId"],
+                            'item_type': resource_type,
+                            'item_id': int(resource_id),
+                            'item_name': item_name,
+                            'quantity': quantity
+                        })
+                    
                     matched_drops += 1
                     break
             
@@ -224,7 +251,9 @@ def parse_map(user_data: dict):
             processed_map[site_name] = mp_detail
         
         print(f"处理完成，共解析 {len(processed_map)} 个站点")
-        return processed_map
+        
+        # 新增：返回重要掉落物信息
+        return processed_map, rare_items_found
         
     except Exception as e:
         # 保存错误数据以便调试
@@ -309,13 +338,29 @@ class Inspector:
                 return
             
             self.raw_log.info(f"| Find Harvest Maps Info")
-            result = parse_map(mysekai_info)
+            
+            # 修改：接收parse_map返回的重要掉落物信息
+            result, rare_items = parse_map(mysekai_info)
+            
             for k, v in result.items():
                 self.raw_log.info(f"| Site: {k} \n {json.dumps(v)}")
+
+            if rare_items:
+                self.raw_log.info("=" * 60)
+                self.raw_log.info("重要掉落物发现！")
+                self.raw_log.info("=" * 60)
+                for item in rare_items:
+                    self.raw_log.info(f"地图: {item['site_name']}")
+                    self.raw_log.info(f"位置: {item['location']}")
+                    self.raw_log.info(f"采集点: {item['fixture_id']}")
+                    self.raw_log.info(f"物品: {item['item_name']} (ID: {item['item_id']})")
+                    self.raw_log.info(f"数量: {item['quantity']}")
+                    self.raw_log.info("-" * 40)
+            else:
+                self.raw_log.info("未发现重要掉落物")
         
         asyncio.create_task(asyncio.to_thread(process))
         
 addons = [
     Inspector()
 ]
-
