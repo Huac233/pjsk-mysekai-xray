@@ -1,5 +1,5 @@
 # run this file with the following command:
-# pip install loguru msgspec msgpack mitmproxy
+# pip install loguru msgspec msgpack mitmproxy pycryptodome
 # mitmweb --mode wireguard -s parse.py --set ignore_hosts=icloud.com.cn --set ignore_hosts=apple.com
 
 # Fill these two thing first with format like: b'put_string_here' 
@@ -364,4 +364,5 @@ class Inspector:
 addons = [
     Inspector()
 ]
+
 
