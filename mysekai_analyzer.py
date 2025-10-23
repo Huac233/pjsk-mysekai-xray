@@ -3,8 +3,8 @@
 # python mysekai_analyzer.py /path/to/your/mysekai_file
 
 # Fill these two thing first with format like: b'put_string_here' 
-AES_KEY = b'THE_KEY'
-AES_IV = b'THE_IV'
+AES_KEY = b"THE_KEY"
+AES_IV = b"THE_IV"
 
 import os, sys
 import argparse
