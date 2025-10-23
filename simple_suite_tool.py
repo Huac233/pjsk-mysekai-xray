@@ -6,8 +6,8 @@ from Crypto.Util.Padding import pad, unpad
 import msgpack
 
 # Fill these two thing first with format like: b'put_string_here' 
-AES_KEY = b'THE_KEY'
-AES_IV = b'THE_IV'
+AES_KEY = b"THE_KEY"
+AES_IV = b"THE_IV"
 
 def decrypt_suite(input_file, output_json):
     """解密suite文件到JSON"""
