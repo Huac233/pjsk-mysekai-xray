@@ -89,17 +89,45 @@ class Map(BaseModel, kw_only=True):
     userMysekaiSiteHarvestResourceDrops: List[UserMysekaiSiteHarvestResourceDrop]
 
 SUPER_RARE_ITEM = {
-    'mysekai_material': [5, 12, 20, 24],  # 夕桐、钻石、四叶草、空白的音色
-    'mysekai_item': [], 
-    'mysekai_fixture': [],
+    'mysekai_material': [5, 12, 20, 24, 64, 65],
+    'mysekai_item': [],
+    'mysekai_fixture': [121],
+    'mysekai_music_record': []
+}
+
+RARE_ITEM = {
+    'mysekai_material': [11, 32, 33, 34, 61, 62, 63],
+    'mysekai_item': [7],
+    'mysekai_fixture': [118, 119, 120],
     'mysekai_music_record': []
 }
 
 ITEM_NAMES = {
-    5: "夕桐",
-    12: "钻石", 
-    20: "四叶草",
-    24: "空白的音色"
+    'mysekai_material': {
+        5: "夕桐",
+        12: "钻石", 
+        20: "四叶草",
+        24: "空白的音色",
+        11: "闪耀石英",
+        32: "蓝天海玻璃",
+        33: "月光石",
+        34: "流星碎片",
+        61: "雪之结晶",
+        62: "最棒斧子的斧刃",
+        63: "最棒十字镐的镐尖", 
+        64: "雷光石", 
+        65: "彩虹玻璃"
+    },
+    'mysekai_item': {
+        7: "设计图碎片"
+    },
+    'mysekai_fixture': {
+        118: "阔叶树的树苗",
+        119: "针叶树的树苗",
+        120: "热带树的树苗",
+        121: "夕桐的树苗"
+    },
+    'mysekai_music_record': {}
 }
 
 SITE_ID = {
@@ -160,7 +188,8 @@ def parse_map(user_data: dict):
         harvest_maps_data = user_data["updatedResources"]["userMysekaiHarvestMaps"]
         
         processed_map = {}
-        rare_items_found = []  # 新增：存储重要掉落物
+        rare_items_found = []  # 存储稀有物品
+        super_rare_items_found = []  # 存储超级稀有物品
         
         # 直接处理每个地图数据，不使用 msgspec
         for i, map_data in enumerate(harvest_maps_data):
@@ -199,10 +228,30 @@ def parse_map(user_data: dict):
                     mp_detail[i]["reward"][resource_type][resource_id] = \
                         mp_detail[i]["reward"][resource_type].get(resource_id, 0) + quantity
                     
-                    #检查是否是重要物品
+                    # 检查是否是超级稀有物品
                     if (resource_type in SUPER_RARE_ITEM and 
                         int(resource_id) in SUPER_RARE_ITEM[resource_type]):
-                        item_name = ITEM_NAMES.get(int(resource_id), f"未知物品 {resource_id}")
+                        item_name = ITEM_NAMES.get(resource_type, {}).get(
+                            int(resource_id), 
+                            f"未知{resource_type} {resource_id}"
+                        )
+                        super_rare_items_found.append({
+                            'site_name': site_name,
+                            'location': pos,
+                            'fixture_id': mp_detail[i]["fixtureId"],
+                            'item_type': resource_type,
+                            'item_id': int(resource_id),
+                            'item_name': item_name,
+                            'quantity': quantity
+                        })
+                    
+                    # 检查是否是稀有物品
+                    if (resource_type in RARE_ITEM and 
+                        int(resource_id) in RARE_ITEM[resource_type]):
+                        item_name = ITEM_NAMES.get(resource_type, {}).get(
+                            int(resource_id), 
+                            f"未知{resource_type} {resource_id}"
+                        )
                         rare_items_found.append({
                             'site_name': site_name,
                             'location': pos,
@@ -217,8 +266,8 @@ def parse_map(user_data: dict):
             
             processed_map[site_name] = mp_detail
         
-        # 新增：返回重要掉落物信息
-        return processed_map, rare_items_found
+        # 返回处理后的地图数据、稀有物品和超级稀有物品
+        return processed_map, rare_items_found, super_rare_items_found
         
     except Exception as e:
         # 保存错误数据以便调试
@@ -259,7 +308,7 @@ def process_mysekai_file(file_path: str):
         unpacked_data = unmsgpack(decrypted_data)
         
         # 解析地图数据
-        result, rare_items = parse_map(unpacked_data)
+        result, rare_items, super_rare_items = parse_map(unpacked_data)
         
         # 输出结果
         logger.info("| Find Harvest Maps Info")
@@ -267,11 +316,41 @@ def process_mysekai_file(file_path: str):
         for k, v in result.items():
             logger.info(f"| Site: {k} \n {json.dumps(v)}")
 
+        # 统计并显示各地图稀有物品数量
         if rare_items:
+            logger.info("=" * 60)
+            logger.info("稀有物品统计")
+            logger.info("=" * 60)
+            
+            # 按地图分组统计
+            site_rare_counts = {}
+            for item in rare_items:
+                site_name = item['site_name']
+                if site_name not in site_rare_counts:
+                    site_rare_counts[site_name] = {}
+                
+                item_key = f"{item['item_name']}(ID:{item['item_id']})"
+                if item_key not in site_rare_counts[site_name]:
+                    site_rare_counts[site_name][item_key] = 0
+                site_rare_counts[site_name][item_key] += item['quantity']
+            
+            # 显示统计结果
+            for site_name, items in site_rare_counts.items():
+                logger.info(f"地图: {site_name}")
+                total_count = sum(items.values())
+                logger.info(f"  稀有物品总数: {total_count}")
+                for item_name, count in items.items():
+                    logger.info(f"  - {item_name}: {count}个")
+                logger.info("-" * 40)
+        else:
+            logger.info("未发现稀有物品")
+
+        # 超级稀有物品显示
+        if super_rare_items:
             logger.info("=" * 60)
             logger.info("重要掉落物发现！")
             logger.info("=" * 60)
-            for item in rare_items:
+            for item in super_rare_items:
                 logger.info(f"地图: {item['site_name']}")
                 logger.info(f"位置: {item['location']}")
                 logger.info(f"采集点: {item['fixture_id']}")
@@ -281,7 +360,7 @@ def process_mysekai_file(file_path: str):
         else:
             logger.info("未发现重要掉落物")
             
-        return result, rare_items
+        return result, rare_items, super_rare_items
         
     except Exception as e:
         logger.error(f"处理文件时发生错误: {e}")
