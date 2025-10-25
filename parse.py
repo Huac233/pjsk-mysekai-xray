@@ -66,7 +66,7 @@ class ModelItem(BaseModel, kw_only=True):
     mysekaiFixtureFootstepId: Optional[int] = None
     mysekaiFixtureTagGroup: Optional[MysekaiFixtureTagGroup] = None
     isAssembled: bool
-    isAssembled: bool
+    isDisassembled: bool
     mysekaiFixturePlayerActionType: str
     isGameCharacterAction: bool
     assetbundleName: str
@@ -479,4 +479,5 @@ class Inspector:
         
 addons = [
     Inspector()
+
 ]
