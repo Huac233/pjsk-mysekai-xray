@@ -66,7 +66,7 @@ class ModelItem(BaseModel, kw_only=True):
     mysekaiFixtureFootstepId: Optional[int] = None
     mysekaiFixtureTagGroup: Optional[MysekaiFixtureTagGroup] = None
     isAssembled: bool
-    isDisassembled: bool
+    isAssembled: bool
     mysekaiFixturePlayerActionType: str
     isGameCharacterAction: bool
     assetbundleName: str
@@ -197,9 +197,16 @@ def parse_map(user_data: dict):
         
         harvest_maps_data = user_data["updatedResources"]["userMysekaiHarvestMaps"]
         
+        # 获取已解锁的唱片ID列表
+        unlocked_music_ids = set()
+        if "userMysekaiMusicRecords" in user_data["updatedResources"]:
+            for record in user_data["updatedResources"]["userMysekaiMusicRecords"]:
+                unlocked_music_ids.add(record["mysekaiMusicRecordId"])
+        
         processed_map = {}
         rare_items_found = []  # 存储稀有掉落物
         super_rare_items_found = []  # 存储超级稀有掉落物
+        music_records_found = []  # 存储发现的唱片
         
         print(f"开始处理 {len(harvest_maps_data)} 个地图数据")
         
@@ -288,6 +295,24 @@ def parse_map(user_data: dict):
                             'quantity': quantity
                         })
                     
+                    # 检查是否是唱片
+                    if resource_type == "mysekai_music_record":
+                        music_id = int(resource_id)
+                        item_name = ITEM_NAMES.get(resource_type, {}).get(
+                            music_id, 
+                            f"歌曲{music_id}"
+                        )
+                        is_unlocked = music_id in unlocked_music_ids
+                        music_records_found.append({
+                            'site_name': site_name,
+                            'location': pos,
+                            'fixture_id': mp_detail[i]["fixtureId"],
+                            'music_id': music_id,
+                            'music_name': item_name,
+                            'quantity': quantity,
+                            'is_unlocked': is_unlocked
+                        })
+                    
                     matched_drops += 1
                     break
             
@@ -297,8 +322,8 @@ def parse_map(user_data: dict):
         
         print(f"处理完成，共解析 {len(processed_map)} 个站点")
         
-        # 返回重要掉落物信息和稀有掉落物信息
-        return processed_map, rare_items_found, super_rare_items_found
+        # 返回重要掉落物信息、稀有掉落物信息和唱片信息
+        return processed_map, rare_items_found, super_rare_items_found, music_records_found
         
     except Exception as e:
         # 保存错误数据以便调试
@@ -384,11 +409,27 @@ class Inspector:
             
             self.raw_log.info(f"| Find Harvest Maps Info")
             
-            # 接收parse_map返回的稀有和超级稀有掉落物信息
-            result, rare_items, super_rare_items = parse_map(mysekai_info)
+            # 接收parse_map返回的稀有、超级稀有掉落物信息和唱片信息
+            result, rare_items, super_rare_items, music_records = parse_map(mysekai_info)
             
             for k, v in result.items():
                 self.raw_log.info(f"| Site: {k} \n {json.dumps(v)}")
+
+            # 新增：显示唱片信息
+            if music_records:
+                self.raw_log.info("=" * 60)
+                self.raw_log.info("唱片发现")
+                self.raw_log.info("=" * 60)
+                for record in music_records:
+                    status = "[已获取]" if record['is_unlocked'] else "[新歌曲]"
+                    self.raw_log.info(f"{status}: {record['music_name']} (ID: {record['music_id']})")
+                    self.raw_log.info(f"  地图: {record['site_name']}")
+                    self.raw_log.info(f"  位置: {record['location']}")
+                    self.raw_log.info(f"  采集点: {record['fixture_id']}")
+                    self.raw_log.info(f"  数量: {record['quantity']}")
+                    self.raw_log.info("-" * 40)
+            else:
+                self.raw_log.info("未发现唱片")
 
             # 统计并显示各地图稀有物品数量
             if rare_items:
@@ -439,4 +480,3 @@ class Inspector:
 addons = [
     Inspector()
 ]
-

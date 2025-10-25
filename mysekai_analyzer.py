@@ -107,25 +107,25 @@ ITEM_NAMES = {
         5: "夕桐",
         12: "钻石", 
         20: "四叶草",
-        24: "空白的音色",
+        24: "空白的音色", 
+        64: "雷光石", 
+        65: "彩虹玻璃",
         11: "闪耀石英",
-        32: "蓝天海玻璃",
+        32: "日光石",
         33: "月光石",
         34: "流星碎片",
-        61: "雪之结晶",
+        61: "最棒斧子的柄",
         62: "最棒斧子的斧刃",
-        63: "最棒十字镐的镐尖", 
-        64: "雷光石", 
-        65: "彩虹玻璃"
+        63: "最棒十字镐的镐尖"
     },
     'mysekai_item': {
         7: "设计图碎片"
     },
     'mysekai_fixture': {
+        121: "夕桐的树苗",
         118: "阔叶树的树苗",
         119: "针叶树的树苗",
-        120: "热带树的树苗",
-        121: "夕桐的树苗"
+        120: "棕榈树的树苗"
     },
     'mysekai_music_record': {}
 }
@@ -187,9 +187,16 @@ def parse_map(user_data: dict):
         
         harvest_maps_data = user_data["updatedResources"]["userMysekaiHarvestMaps"]
         
+        # 获取已解锁的唱片ID列表
+        unlocked_music_ids = set()
+        if "userMysekaiMusicRecords" in user_data["updatedResources"]:
+            for record in user_data["updatedResources"]["userMysekaiMusicRecords"]:
+                unlocked_music_ids.add(record["mysekaiMusicRecordId"])
+        
         processed_map = {}
         rare_items_found = []  # 存储稀有物品
         super_rare_items_found = []  # 存储超级稀有物品
+        music_records_found = []  # 存储发现的唱片
         
         # 直接处理每个地图数据，不使用 msgspec
         for i, map_data in enumerate(harvest_maps_data):
@@ -262,12 +269,30 @@ def parse_map(user_data: dict):
                             'quantity': quantity
                         })
                     
+                    # 检查是否是唱片
+                    if resource_type == "mysekai_music_record":
+                        music_id = int(resource_id)
+                        item_name = ITEM_NAMES.get(resource_type, {}).get(
+                            music_id, 
+                            f"歌曲{music_id}"
+                        )
+                        is_unlocked = music_id in unlocked_music_ids
+                        music_records_found.append({
+                            'site_name': site_name,
+                            'location': pos,
+                            'fixture_id': mp_detail[i]["fixtureId"],
+                            'music_id': music_id,
+                            'music_name': item_name,
+                            'quantity': quantity,
+                            'is_unlocked': is_unlocked
+                        })
+                    
                     break
             
             processed_map[site_name] = mp_detail
         
-        # 返回处理后的地图数据、稀有物品和超级稀有物品
-        return processed_map, rare_items_found, super_rare_items_found
+        # 返回处理后的地图数据、稀有物品、超级稀有物品和唱片信息
+        return processed_map, rare_items_found, super_rare_items_found, music_records_found
         
     except Exception as e:
         # 保存错误数据以便调试
@@ -308,13 +333,29 @@ def process_mysekai_file(file_path: str):
         unpacked_data = unmsgpack(decrypted_data)
         
         # 解析地图数据
-        result, rare_items, super_rare_items = parse_map(unpacked_data)
+        result, rare_items, super_rare_items, music_records = parse_map(unpacked_data)
         
         # 输出结果
         logger.info("| Find Harvest Maps Info")
         
         for k, v in result.items():
             logger.info(f"| Site: {k} \n {json.dumps(v)}")
+
+        # 新增：显示唱片信息
+        if music_records:
+            logger.info("=" * 60)
+            logger.info("唱片发现")
+            logger.info("=" * 60)
+            for record in music_records:
+                status = "[已获取]" if record['is_unlocked'] else "[新歌曲]"
+                logger.info(f"{status}: {record['music_name']} (ID: {record['music_id']})")
+                logger.info(f"  地图: {record['site_name']}")
+                logger.info(f"  位置: {record['location']}")
+                logger.info(f"  采集点: {record['fixture_id']}")
+                logger.info(f"  数量: {record['quantity']}")
+                logger.info("-" * 40)
+        else:
+            logger.info("未发现唱片")
 
         # 统计并显示各地图稀有物品数量
         if rare_items:
@@ -360,7 +401,7 @@ def process_mysekai_file(file_path: str):
         else:
             logger.info("未发现重要掉落物")
             
-        return result, rare_items, super_rare_items
+        return result, rare_items, super_rare_items, music_records
         
     except Exception as e:
         logger.error(f"处理文件时发生错误: {e}")
