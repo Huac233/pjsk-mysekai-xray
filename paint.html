@@ -534,6 +534,7 @@
             const displayY = yDirection === 'y+' ? originY + y * displayGridWidth : originY - y * displayGridWidth;
             const color = FIXTURE_COLORS[point.fixtureId];
             let ifContainRareItem = false;
+            let ifContainSuperRareItem = false;
 
             if (color) {
                 ctx.fillStyle = color;
@@ -541,10 +542,13 @@
                 ctx.arc(displayX, displayY, 5, 0, Math.PI * 2);
                 ctx.fill();
 
-                const containsRareItem = doContainsRareItem(point.reward);
-                if (containsRareItem) {
+                const containsRareItem = doContainsRareItem(point.reward, false);
+                const containsSuperRareItem = doContainsRareItem(point.reward, true);
+                
+                if (containsRareItem || containsSuperRareItem) {
                     ctx.strokeStyle = 'red';
-                    ifContainRareItem = true;
+                    ifContainRareItem = containsRareItem;
+                    ifContainSuperRareItem = containsSuperRareItem;
                 } else {
                     ctx.strokeStyle = 'black';
                 }
@@ -552,7 +556,7 @@
                 ctx.arc(displayX, displayY, 5, 0, Math.PI * 2);
                 ctx.stroke();
 
-                displayReward(point.reward, displayX + displayGridWidth * 1.5, displayY + displayGridWidth / 1.2, ifContainRareItem);
+                displayReward(point.reward, displayX + displayGridWidth * 1.5, displayY + displayGridWidth / 1.2, ifContainRareItem, ifContainSuperRareItem);
             } else {
                 ctx.fillStyle = 'black';
                 ctx.font = '12px Arial';
@@ -560,7 +564,7 @@
             }
         }
 
-        function displayReward(reward, x, y, ifContainRareItem) {
+        function displayReward(reward, x, y, ifContainRareItem, ifContainSuperRareItem) {
             const itemList = document.createElement('div');
             itemList.className = 'item-list';
             const container = document.querySelector('.container');
@@ -648,12 +652,10 @@
                 }
             }
 
-            if (ifContainRareItem || reward.hasOwnProperty("mysekai_music_record")) {
-                if (doContainsRareItem(reward, true)) {
-                    itemList.style.background = 'rgba(255, 0, 0, 0.5)';
-                } else {
-                    itemList.style.background = 'rgba(0, 0, 180, 0.5)';
-                }
+            if (ifContainSuperRareItem) {
+                itemList.style.background = 'rgba(255, 0, 0, 0.5)';
+            } else if (ifContainRareItem || reward.hasOwnProperty("mysekai_music_record")) {
+                itemList.style.background = 'rgba(0, 0, 180, 0.5)';
             }
 
             document.body.appendChild(itemList);
