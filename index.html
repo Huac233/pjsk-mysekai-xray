@@ -4,365 +4,35 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Project SEKAI - MySekai Xray</title>
-    <script src="html2canvas.min.js"></script>
-    <script src="music_record_mapping.js"></script>
-    <script>
-        const SCENES = {
-            scene1: {
-                physicalWidth: 33.333,
-                offsetX: 0,
-                offsetY: -40,
-                imagePath: "img/grassland.png",
-                xDirection: 'x-',
-                yDirection: 'y-',
-                reverseXY: true,
-            },
-            scene2: {
-                physicalWidth: 24.806,
-                offsetX: -62.015,
-                offsetY: 20.672,
-                imagePath: "img/flowergarden.png",
-                xDirection: 'x-',
-                yDirection: 'y-',
-                reverseXY: true,
-            },
-            scene3: {
-                physicalWidth: 20.513,
-                offsetX: 0,
-                offsetY: 80,
-                imagePath: "img/beach.png",
-                xDirection: 'x+',
-                yDirection: 'y-',
-                reverseXY: false,
-            },
-            scene4: {
-                physicalWidth: 21.333,
-                offsetX: 0,
-                offsetY: -106.667,
-                imagePath: "img/memorialplace.png",
-                xDirection: 'x+',
-                yDirection: 'y-',
-                reverseXY: false,
-            }
-        };
-
-        const FIXTURE_COLORS = {
-            112: '#f9f9f9',
-            1001: '#da6d42',
-            1002: '#da6d42',
-            1003: '#da6d42',
-            1004: '#da6d42',
-            2001: '#878685',
-            2002: '#d5750a',
-            2003: '#d5d5d5',
-            2004: '#a7c7cb',
-            2005: '#9933cc',
-            3001: '#c95a49',
-            4001: '#f8729a',
-            4002: '#f8729a',
-            4003: '#f8729a',
-            4004: '#f8729a',
-            4005: '#f8729a',
-            4006: '#f8729a',
-            4007: '#f8729a',
-            4008: '#f8729a',
-            4009: '#f8729a',
-            4010: '#f8729a',
-            4011: '#f8729a',
-            4012: '#f8729a',
-            4013: '#f8729a',
-            4014: '#f8729a',
-            4015: '#f8729a',
-            4016: '#f8729a',
-            4017: '#f8729a',
-            4018: '#f8729a',
-            4019: '#f8729a',
-            4020: '#f8729a',
-            5001: '#f6f5f2',
-            5002: '#f6f5f2',
-            5003: '#f6f5f2',
-            5004: '#f6f5f2',
-            5101: '#f6f5f2',
-            5102: '#f6f5f2',
-            5103: '#f6f5f2',
-            5104: '#f6f5f2',
-            6001: '#6f4e37',
-            7001: '#a5d9ff',
-        };
-
-        const ITEM_TEXTURES = {
-            mysekai_material: {
-                "1": "./icon/Texture2D/item_wood_1.png",
-                "2": "./icon/Texture2D/item_wood_2.png",
-                "3": "./icon/Texture2D/item_wood_3.png",
-                "4": "./icon/Texture2D/item_wood_4.png",
-                "5": "./icon/Texture2D/item_wood_5.png",
-                "6": "./icon/Texture2D/item_mineral_1.png",
-                "7": "./icon/Texture2D/item_mineral_2.png",
-                "8": "./icon/Texture2D/item_mineral_3.png",
-                "9": "./icon/Texture2D/item_mineral_4.png",
-                "10": "./icon/Texture2D/item_mineral_5.png",
-                "11": "./icon/Texture2D/item_mineral_6.png",
-                "12": "./icon/Texture2D/item_mineral_7.png",
-                "13": "./icon/Texture2D/item_junk_1.png",
-                "14": "./icon/Texture2D/item_junk_2.png",
-                "15": "./icon/Texture2D/item_junk_3.png",
-                "16": "./icon/Texture2D/item_junk_4.png",
-                "17": "./icon/Texture2D/item_junk_5.png",
-                "18": "./icon/Texture2D/item_junk_6.png",
-                "19": "./icon/Texture2D/item_junk_7.png",
-                "20": "./icon/Texture2D/item_plant_1.png",
-                "21": "./icon/Texture2D/item_plant_2.png",
-                "22": "./icon/Texture2D/item_plant_3.png",
-                "23": "./icon/Texture2D/item_plant_4.png",
-                "24": "./icon/Texture2D/item_tone_8.png",
-                "32": "./icon/Texture2D/item_junk_8.png",
-                "33": "./icon/Texture2D/item_mineral_8.png",
-                "34": "./icon/Texture2D/item_junk_9.png",
-                "35": "./icon/Texture2D/item_memoria_1.png",
-                "36": "./icon/Texture2D/item_memoria_2.png",
-                "37": "./icon/Texture2D/item_memoria_3.png",
-                "38": "./icon/Texture2D/item_memoria_4.png",
-                "39": "./icon/Texture2D/item_memoria_5.png",
-                "40": "./icon/Texture2D/item_memoria_6.png",
-                "41": "./icon/Texture2D/item_memoria_7.png",
-                "42": "./icon/Texture2D/item_memoria_8.png",
-                "43": "./icon/Texture2D/item_memoria_9.png",
-                "44": "./icon/Texture2D/item_memoria_10.png",
-                "45": "./icon/Texture2D/item_memoria_11.png",
-                "46": "./icon/Texture2D/item_memoria_12.png",
-                "47": "./icon/Texture2D/item_memoria_13.png",
-                "48": "./icon/Texture2D/item_memoria_14.png",
-                "49": "./icon/Texture2D/item_memoria_15.png",
-                "50": "./icon/Texture2D/item_memoria_16.png",
-                "51": "./icon/Texture2D/item_memoria_17.png",
-                "52": "./icon/Texture2D/item_memoria_18.png",
-                "53": "./icon/Texture2D/item_memoria_19.png",
-                "54": "./icon/Texture2D/item_memoria_20.png",
-                "55": "./icon/Texture2D/item_memoria_21.png",
-                "56": "./icon/Texture2D/item_memoria_22.png",
-                "57": "./icon/Texture2D/item_memoria_23.png",
-                "58": "./icon/Texture2D/item_memoria_24.png",
-                "59": "./icon/Texture2D/item_memoria_25.png",
-                "60": "./icon/Texture2D/item_memoria_26.png",
-                "61": "./icon/Texture2D/item_junk_10.png",
-                "62": "./icon/Texture2D/item_junk_11.png",
-                "63": "./icon/Texture2D/item_junk_12.png",
-                "64": "./icon/Texture2D/item_mineral_9.png",
-                "65": "./icon/Texture2D/item_mineral_10.png",
-                "66": "./icon/Texture2D/item_junk_13.png",
-                "72": "./icon/Texture2D/item_birthday_flower_6.png",
-                "93": "./icon/Texture2D/item_junk_14.png",
-            },
-            mysekai_item: {
-                "1": "./icon/Texture2D/item_blank_blueprint.png",
-                "2": "./icon/Texture2D/item_surplus_blueprint.png",
-                "5": "./icon/Texture2D/item_surplus_music_record.png",
-                "6": "./icon/Texture2D/item_photofilm.png",
-                "7": "./icon/Texture2D/item_blueprint_fragment.png",
-            },
-            mysekai_fixture: {
-                "118": "./icon/Texture2D/mdl_non1001_before_sapling1_118.png",
-                "119": "./icon/Texture2D/mdl_non1001_before_sapling1_119.png",
-                "120": "./icon/Texture2D/mdl_non1001_before_sapling1_120.png",
-                "121": "./icon/Texture2D/mdl_non1001_before_sapling1_121.png",
-                "126": "./icon/Texture2D/mdl_non1001_before_sprout1_126.png",
-                "127": "./icon/Texture2D/mdl_non1001_before_sprout1_127.png",
-                "128": "./icon/Texture2D/mdl_non1001_before_sprout1_128.png",
-                "129": "./icon/Texture2D/mdl_non1001_before_sprout1_129.png",
-                "130": "./icon/Texture2D/mdl_non1001_before_sprout1_130.png",
-                "474": "./icon/Texture2D/mdl_non1001_before_sprout1_474.png",
-                "475": "./icon/Texture2D/mdl_non1001_before_sprout1_475.png",
-                "476": "./icon/Texture2D/mdl_non1001_before_sprout1_476.png",
-                "477": "./icon/Texture2D/mdl_non1001_before_sprout1_477.png",
-                "478": "./icon/Texture2D/mdl_non1001_before_sprout1_478.png",
-                "479": "./icon/Texture2D/mdl_non1001_before_sprout1_479.png",
-                "480": "./icon/Texture2D/mdl_non1001_before_sprout1_480.png",
-                "481": "./icon/Texture2D/mdl_non1001_before_sprout1_481.png",
-                "482": "./icon/Texture2D/mdl_non1001_before_sprout1_482.png",
-                "483": "./icon/Texture2D/mdl_non1001_before_sprout1_483.png"
-            },
-            mysekai_music_record: {}
-        };
-
-        const RARE_ITEM = {
-            mysekai_material: [11, 32, 33, 34, 61, 62, 63],
-            mysekai_item: [7],
-            mysekai_fixture: [118, 119, 120],
-            mysekai_music_record: []
-        };
-
-        const SUPER_RARE_ITEM = {
-            mysekai_material: [5, 12, 20, 24, 64, 65],
-            mysekai_item: [],
-            mysekai_fixture: [121],
-            mysekai_music_record: []
-        };
-
-        const PROXY_CONFIG = {
-            proxies: [
-                'https://api.codetabs.com/v1/proxy?quest=',
-                'https://corsproxy.io/?url=',
-            ],
-            currentProxyIndex: 0,
-            getCurrentProxy: function() {
-                return this.proxies[this.currentProxyIndex];
-            },
-            nextProxy: function() {
-                this.currentProxyIndex = (this.currentProxyIndex + 1) % this.proxies.length;
-                return this.getCurrentProxy();
-            },
-            setCustomProxy: function(customUrl) {
-                if (customUrl && !this.proxies.includes(customUrl)) {
-                    this.proxies.unshift(customUrl);
-                    this.currentProxyIndex = 0;
-                }
-            }
-        };
-
-        function getMusicRecordUrl(recordId) {
-            const recordData = MUSIC_RECORD_MAPPING[recordId];
-            if (!recordData) {
-                return './icon/Texture2D/item_surplus_music_record.png';
-            }
-            const { external_id, server } = recordData;
-            const numId = parseInt(external_id);
-            const formattedId = numId < 100 ? String(numId).padStart(3, '0') : String(numId);
-            return `https://storage.sekai.best/sekai-${server}-assets/music/jacket/jacket_s_${formattedId}/jacket_s_${formattedId}.png`;
-        }
-
-        function getProxiedMusicRecordUrl(recordId, proxyIndex = 0) {
-            const recordData = MUSIC_RECORD_MAPPING[recordId];
-            if (!recordData) {
-                return './icon/Texture2D/item_surplus_music_record.png';
-            }
-            const { external_id, server } = recordData;
-            const numId = parseInt(external_id);
-            const formattedId = numId < 100 ? String(numId).padStart(3, '0') : String(numId);
-            const originalUrl = `https://storage.sekai.best/sekai-${server}-assets/music/jacket/jacket_s_${formattedId}/jacket_s_${formattedId}.png`;
-            if (proxyIndex < PROXY_CONFIG.proxies.length) {
-                const proxyUrl = PROXY_CONFIG.proxies[proxyIndex];
-                return proxyUrl + encodeURIComponent(originalUrl);
-            } else {
-                return './icon/Texture2D/item_surplus_music_record.png';
-            }
-        }
-    </script>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            position: relative;
-            max-width: 1920px;
-            width: 100%;
-            text-align: center;
-        }
-        .image-container {
-            position: relative;
-            display: inline-block;
-        }
-        .image-container img {
-            max-width: 100%;
-            height: auto;
-            display: block;
-        }
-        .grid-canvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
-        .controls {
-            margin-top: 20px;
-        }
-        .controls label {
-            font-size: 16px;
-            margin-right: 10px;
-        }
-        .controls input {
-            padding: 5px;
-            font-size: 16px;
-            width: 100px;
-        }
-        .controls textarea {
-            width: 400px;
-            height: 100px;
-            margin-bottom: 10px;
-        }
-        .direction-buttons {
-            margin-top: 10px;
-        }
-        .direction-buttons button {
-            margin: 5px;
-            padding: 10px 20px;
-            cursor: pointer;
-        }
-        .item-list {
-            position: absolute;
-            background: rgba(138, 138, 138, 0.7);
-            border-radius: 3px;
-            font-size: 12px;
-            text-align: left;
-        }
-        .item-list img {
-            width: 20px;
-            height: 20px;
-            vertical-align: middle;
-            position: relative;
-        }
-        .item-list .quantity {
-            font-size: 8px;
-            position: absolute;
-            bottom: 0;
-            right: 0;
-            color: black;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 50%;
-            padding: 2px;
-        }
-    </style>
+    <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-    <div class="container">
-        <div class="image-container">
-            <img src="image.png" alt="示例图片" id="image" />
-            <canvas class="grid-canvas" id="gridCanvas"></canvas>
-        </div>
-    </div>
+    <div class="loading-indicator" id="loadingIndicator">加载中...</div>
+    
     <div class="controls">
         <textarea id="jsonInput" placeholder="请输入JSON数据"></textarea>
         <br />
-        <label for="sceneSelect">Select Scene:</label>
-        <select id="sceneSelect">
-            <option value="scene1">初始空地</option>
-            <option value="scene2">烂漫花田</option>
-            <option value="scene3">心愿沙滩</option>
-            <option value="scene4">忘却之所</option>
-        </select>
-        <button onclick="applyScene()">绘制地图</button>
-        <br />
+        <label>选择场景:</label>
+        <div class="scene-checkboxes">
+            <label><input type="checkbox" value="scene1" checked> 初始空地</label>
+            <label><input type="checkbox" value="scene2" checked> 烂漫花田</label>
+            <label><input type="checkbox" value="scene3" checked> 心愿沙滩</label>
+            <label><input type="checkbox" value="scene4" checked> 忘却之所</label>
+        </div>
         <button onclick="parseAndMarkPoints()">绘制物品</button>
-        <button onclick="captureScreenshot()">截图保存</button>
+        <button onclick="captureScreenshots()">截图保存所有</button>
         <br />
         <br />
         <details>
-            <summary>Advance Settings</summary>
-            <label for="physicalWidth">Grid Width(px):</label>
+            <summary>高级设置</summary>
+            <label for="physicalWidth">网格宽度(px):</label>
             <input type="number" id="physicalWidth" value="10" min="1" step="1" />
-            <label for="offsetX">X Offset(px):</label>
+            <label for="offsetX">X偏移(px):</label>
             <input type="number" id="offsetX" value="0" step="1" />
-            <label for="offsetY">Y Offset(px):</label>
+            <label for="offsetY">Y偏移(px):</label>
             <input type="number" id="offsetY" value="0" step="1" />
-            <button onclick="drawGrid()">Draw Grid</button>
-            <button onclick="clearGrid()">Clear Canvas</button>
+            <button onclick="drawGrids()">绘制网格</button>
+            <button onclick="clearAll()">清除所有</button>
             <br />
             <div class="direction-buttons">
                 <button onclick="setDirection('x+', 'y+')">X+ Y+</button>
@@ -372,331 +42,67 @@
             </div>
         </details>
     </div>
-    <script>
-        async function captureScreenshot() {
-            const container = document.querySelector('.container');
-            const rect = container.getBoundingClientRect();
-            
-            function screenshot(canvas) {
-                const imgData = canvas.toDataURL('image/png');
-                const link = document.createElement('a');
-                link.href = imgData;
-                link.download = 'screenshot.png';
-                link.click();
-            }
-
-            const cav = await html2canvas(document.body, {
-                x: rect.left + window.scrollX,
-                y: rect.top + window.scrollY,
-                width: rect.width,
-                height: rect.height,
-                scrollX: 0,
-                scrollY: 0
-            });
-            screenshot(cav);
-        }
-
-        let xDirection = 'x+';
-        let yDirection = 'y-';
-        let reverseXY = false;
-
-        function applyScene() {
-            const selectedSceneKey = document.getElementById('sceneSelect').value;
-            const selectedScene = SCENES[selectedSceneKey];
-            if (selectedScene) {
-                physicalWidthInput.value = selectedScene.physicalWidth;
-                offsetXInput.value = selectedScene.offsetX;
-                offsetYInput.value = selectedScene.offsetY;
-                image.src = selectedScene.imagePath;
-                xDirection = selectedScene.xDirection;
-                yDirection = selectedScene.yDirection;
-                reverseXY = selectedScene.reverseXY;
-                initCanvas();
-            }
-        }
-
-        const image = document.getElementById('image');
-        const canvas = document.getElementById('gridCanvas');
-        const physicalWidthInput = document.getElementById('physicalWidth');
-        const offsetXInput = document.getElementById('offsetX');
-        const offsetYInput = document.getElementById('offsetY');
-        const jsonInput = document.getElementById('jsonInput');
-        let ctx = canvas.getContext('2d');
-
-        function initCanvas() {
-            canvas.width = image.clientWidth;
-            canvas.height = image.clientHeight;
-        }
-
-        window.addEventListener('resize', initCanvas);
-
-        function drawGrid() {
-            const physicalGridWidth = parseFloat(physicalWidthInput.value);
-            const offsetX = parseFloat(offsetXInput.value);
-            const offsetY = parseFloat(offsetYInput.value);
-            const displayWidth = image.clientWidth;
-            const displayHeight = image.clientHeight;
-            const naturalWidth = image.naturalWidth;
-            const naturalHeight = image.naturalHeight;
-            const scaleX = displayWidth / naturalWidth;
-            const scaleY = displayHeight / naturalHeight;
-            const displayGridWidth = physicalGridWidth * scaleX;
-            const originX = displayWidth / 2 + offsetX;
-            const originY = displayHeight / 2 + offsetY;
-
-            ctx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
-            ctx.lineWidth = 1;
-
-            for (let y = originY; y >= 0; y -= displayGridWidth) {
-                drawHorizontalLine(y);
-            }
-            for (let y = originY + displayGridWidth; y <= displayHeight; y += displayGridWidth) {
-                drawHorizontalLine(y);
-            }
-            for (let x = originX; x >= 0; x -= displayGridWidth) {
-                drawVerticalLine(x);
-            }
-            for (let x = originX + displayGridWidth; x <= displayWidth; x += displayGridWidth) {
-                drawVerticalLine(x);
-            }
-
-            drawCoordinateAxes(originX, originY);
-        }
-
-        function drawHorizontalLine(y) {
-            ctx.beginPath();
-            ctx.moveTo(0, y);
-            ctx.lineTo(canvas.width, y);
-            ctx.stroke();
-        }
-
-        function drawVerticalLine(x) {
-            ctx.beginPath();
-            ctx.moveTo(x, 0);
-            ctx.lineTo(x, canvas.height);
-            ctx.stroke();
-        }
-
-        function drawCoordinateAxes(originX, originY) {
-            const crossSize = 3;
-            ctx.strokeStyle = 'black';
-            ctx.beginPath();
-            ctx.moveTo(originX - crossSize, originY - crossSize);
-            ctx.lineTo(originX + crossSize, originY + crossSize);
-            ctx.stroke();
-            ctx.beginPath();
-            ctx.moveTo(originX + crossSize, originY - crossSize);
-            ctx.lineTo(originX - crossSize, originY + crossSize);
-            ctx.stroke();
-        }
-
-        function parseAndMarkPoints() {
-            try {
-                const points = JSON.parse(jsonInput.value);
-                if (!Array.isArray(points)) {
-                    throw new Error("输入的JSON必须是一个数组");
-                }
-                initCanvas();
-                clearItemLists();
-                if (!reverseXY) {
-                    points.forEach(point => markPoint(point));
-                } else {
-                    points.forEach(point => markPoint({location: [point.location[1], point.location[0]], fixtureId: point.fixtureId, reward: point.reward}));
-                }
-                adjustItemListPositions(5, 5);
-            } catch (error) {
-                alert("JSON解析错误: " + error.message);
-            }
-        }
-
-        function doContainsRareItem(reward, isSuperRare = false) {
-            let compareList = isSuperRare ? SUPER_RARE_ITEM : RARE_ITEM;
-            for (const category in reward) {
-                if (reward.hasOwnProperty(category) && compareList.hasOwnProperty(category)) {
-                    for (const itemId of Object.keys(reward[category])) {
-                        if (compareList[category].includes(parseInt(itemId))) {
-                            return true;
-                        }
-                    }
-                }
-            }
-            return false;
-        }
-
-        function markPoint(point) {
-            const [x, y] = point.location;
-            const offsetX = parseFloat(offsetXInput.value);
-            const offsetY = parseFloat(offsetYInput.value);
-            const originX = canvas.width / 2 + offsetX;
-            const originY = canvas.height / 2 + offsetY;
-            const displayGridWidth = parseFloat(physicalWidthInput.value) * (image.clientWidth / image.naturalWidth);
-            const displayX = xDirection === 'x+' ? originX + x * displayGridWidth : originX - x * displayGridWidth;
-            const displayY = yDirection === 'y+' ? originY + y * displayGridWidth : originY - y * displayGridWidth;
-            const color = FIXTURE_COLORS[point.fixtureId];
-            let ifContainRareItem = false;
-            let ifContainSuperRareItem = false;
-
-            if (color) {
-                ctx.fillStyle = color;
-                ctx.beginPath();
-                ctx.arc(displayX, displayY, 5, 0, Math.PI * 2);
-                ctx.fill();
-
-                const containsRareItem = doContainsRareItem(point.reward, false);
-                const containsSuperRareItem = doContainsRareItem(point.reward, true);
-                
-                if (containsRareItem || containsSuperRareItem) {
-                    ctx.strokeStyle = 'red';
-                    ifContainRareItem = containsRareItem;
-                    ifContainSuperRareItem = containsSuperRareItem;
-                } else {
-                    ctx.strokeStyle = 'black';
-                }
-                ctx.beginPath();
-                ctx.arc(displayX, displayY, 5, 0, Math.PI * 2);
-                ctx.stroke();
-
-                displayReward(point.reward, displayX + displayGridWidth * 1.5, displayY + displayGridWidth / 1.2, ifContainRareItem, ifContainSuperRareItem);
-            } else {
-                ctx.fillStyle = 'black';
-                ctx.font = '12px Arial';
-                ctx.fillText('?', displayX - 3, displayY + 4);
-            }
-        }
-
-        function displayReward(reward, x, y, ifContainRareItem, ifContainSuperRareItem) {
-            const itemList = document.createElement('div');
-            itemList.className = 'item-list';
-            const container = document.querySelector('.container');
-            const containerWidth = container.offsetWidth;
-            const screenWidth = window.innerWidth;
-            let xOffset = 0;
-            let yOffset = 0;
-
-            if (containerWidth >= 1920) {
-                const emptySpaceWidth = (screenWidth - 1920 - 80) / 2;
-                xOffset = emptySpaceWidth;
-                yOffset = -10;
-            }
-
-            if (reverseXY) {
-                itemList.style.left = `${x + xOffset}px`;
-                itemList.style.top = `${y - 10 + yOffset}px`;
-            } else {
-                itemList.style.left = `${x + xOffset}px`;
-                itemList.style.top = `${y + yOffset}px`;
-            }
-
-            for (const category in reward) {
-                if (!reward.hasOwnProperty(category)) continue;
-                for (const itemId in reward[category]) {
-                    if (!reward[category].hasOwnProperty(itemId)) continue;
-                    const quantity = reward[category][itemId];
-                    let texture;
-                    if (category === "mysekai_music_record") {
-                        texture = getMusicRecordUrl(itemId);
-                    } else {
-                        texture = ITEM_TEXTURES[category]?.[itemId] || 'missing.png';
-                    }
-
-                    const itemEntry = document.createElement('div');
-                    const itemImage = document.createElement('img');
-                    let retryCount = 0;
-                    const maxRetries = PROXY_CONFIG.proxies.length;
-
-                    const loadImage = (useProxy = false) => {
-                        if (category === "mysekai_music_record") {
-                            const recordData = MUSIC_RECORD_MAPPING[itemId];
-                            if (!recordData) {
-                                itemImage.src = './icon/Texture2D/item_surplus_music_record.png';
-                                return;
-                            }
-                            const { external_id, server } = recordData;
-                            const numId = parseInt(external_id);
-                            const formattedId = numId < 100 ? String(numId).padStart(3, '0') : String(numId);
-                            const originalUrl = `https://storage.sekai.best/sekai-${server}-assets/music/jacket/jacket_s_${formattedId}/jacket_s_${formattedId}.png`;
-                            if (useProxy && retryCount < maxRetries) {
-                                const proxyUrl = PROXY_CONFIG.proxies[retryCount];
-                                itemImage.src = proxyUrl + encodeURIComponent(originalUrl);
-                            } else {
-                                itemImage.src = originalUrl;
-                            }
-                        } else {
-                            itemImage.src = texture;
-                        }
-                    };
-
-                    loadImage(false);
-
-                    itemImage.onerror = function() {
-                        if (category === "mysekai_music_record" && retryCount < maxRetries) {
-                            retryCount++;
-                            loadImage(true);
-                        } else {
-                            this.src = (category === "mysekai_music_record") 
-                                ? './icon/Texture2D/item_surplus_music_record.png' 
-                                : 'missing.png';
-                        }
-                    };
-
-                    const quantityBadge = document.createElement('span');
-                    quantityBadge.className = 'quantity';
-                    quantityBadge.textContent = quantity;
-                    itemEntry.style.position = 'relative';
-                    itemEntry.appendChild(itemImage);
-                    itemEntry.appendChild(quantityBadge);
-                    if (reverseXY) {
-                        itemEntry.style.display = "inline-block";
-                    }
-                    itemList.appendChild(itemEntry);  
-                }
-            }
-
-            if (ifContainSuperRareItem) {
-                itemList.style.background = 'rgba(255, 0, 0, 0.5)';
-            } else if (ifContainRareItem || reward.hasOwnProperty("mysekai_music_record")) {
-                itemList.style.background = 'rgba(0, 0, 180, 0.5)';
-            }
-
-            document.body.appendChild(itemList);
-        }
-
-        function adjustItemListPositions(maxLapWidth, maxLapHeight) {
-            const itemLists = Array.from(document.querySelectorAll('.item-list'));
-            for (let i = 0; i < itemLists.length; i++) {
-                const rect1 = itemLists[i].getBoundingClientRect();
-                for (let j = i; j < itemLists.length; j++) {
-                    if (i === j) continue;
-                    const rect2 = itemLists[j].getBoundingClientRect();
-                    const overlapWidth = Math.min(rect1.right, rect2.right) - Math.max(rect1.left, rect2.left);
-                    const overlapHeight = Math.min(rect1.bottom, rect2.bottom) - Math.max(rect1.top, rect2.top);
-                    if (overlapWidth > 0 && overlapHeight > 0 && (overlapWidth > maxLapWidth || overlapHeight > maxLapHeight)) {
-                        if (reverseXY) {
-                            const currentTop = parseFloat(itemLists[j].style.top || 0);
-                            itemLists[j].style.top = `${currentTop - overlapHeight / 1.25}px`;
-                        } else {
-                            const currentLeft = parseFloat(itemLists[j].style.left || 0);
-                            itemLists[j].style.left = `${currentLeft - overlapWidth / 1.25}px`;
-                        }
-                    }
-                }
-            }
-        }
-
-        function setDirection(newXDirection, newYDirection) {
-            xDirection = newXDirection;
-            yDirection = newYDirection;
-            parseAndMarkPoints();
-        }
-       
-        function clearItemLists() {
-            document.querySelectorAll('.item-list').forEach(item => item.remove());
-        }
-
-        function clearGrid() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            clearItemLists();
-        }
-    </script>  
+    <div id="mapContainers">
+        <div class="container" id="container1">
+            <h2>初始空地</h2>
+            <div class="rotation-buttons">
+                <button onclick="rotateScene('scene1', 90)">顺时针旋转90°</button>
+                <button onclick="rotateScene('scene1', -90)">逆时针旋转90°</button>
+                <button onclick="resetRotation('scene1')">重置旋转</button>
+                <span id="rotationIndicator1">当前角度: 0°</span>
+            </div>
+            <div class="image-container" id="imageContainer1">
+                <img src="img/grassland.png" alt="初始空地" id="image1" />
+                <canvas class="grid-canvas" id="gridCanvas1"></canvas>
+            </div>
+        </div>
+        <div class="container" id="container2">
+            <h2>烂漫花田</h2>
+            <div class="rotation-buttons">
+                <button onclick="rotateScene('scene2', 90)">顺时针旋转90°</button>
+                <button onclick="rotateScene('scene2', -90)">逆时针旋转90°</button>
+                <button onclick="resetRotation('scene2')">重置旋转</button>
+                <span id="rotationIndicator2">当前角度: 0°</span>
+            </div>
+            <div class="image-container" id="imageContainer2">
+                <img src="img/flowergarden.png" alt="烂漫花田" id="image2" />
+                <canvas class="grid-canvas" id="gridCanvas2"></canvas>
+            </div>
+        </div>
+        <div class="container" id="container3">
+            <h2>心愿沙滩</h2>
+            <div class="rotation-buttons">
+                <button onclick="rotateScene('scene3', 90)">顺时针旋转90°</button>
+                <button onclick="rotateScene('scene3', -90)">逆时针旋转90°</button>
+                <button onclick="resetRotation('scene3')">重置旋转</button>
+                <span id="rotationIndicator3">当前角度: 0°</span>
+            </div>
+            <div class="image-container" id="imageContainer3">
+                <img src="img/beach.png" alt="心愿沙滩" id="image3" />
+                <canvas class="grid-canvas" id="gridCanvas3"></canvas>
+            </div>
+        </div>
+        <div class="container" id="container4">
+            <h2>忘却之所</h2>
+            <div class="rotation-buttons">
+                <button onclick="rotateScene('scene4', 90)">顺时针旋转90°</button>
+                <button onclick="rotateScene('scene4', -90)">逆时针旋转90°</button>
+                <button onclick="resetRotation('scene4')">重置旋转</button>
+                <span id="rotationIndicator4">当前角度: 0°</span>
+            </div>
+            <div class="image-container" id="imageContainer4">
+                <img src="img/memorialplace.png" alt="忘却之所" id="image4" />
+                <canvas class="grid-canvas" id="gridCanvas4"></canvas>
+            </div>
+        </div>
+    </div>
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/grid-renderer.js"></script>
+    <script src="js/drag-handler.js"></script>
+    <script src="js/item-renderer.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/html-to-image.js"></script>
+    <script src="js/music-record-mapping.js"></script>
 </body>
 </html>
