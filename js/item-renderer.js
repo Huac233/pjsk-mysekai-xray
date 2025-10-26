@@ -1,9 +1,22 @@
 // 物品渲染功能
 
 // 创建物品列表
-function createItemList(reward, ifContainRareItem, ifContainSuperRareItem, sceneKey) {
+function createItemList(reward, ifContainRareItem, ifContainSuperRareItem, sceneKey, customPosition = null) {
     const itemList = document.createElement('div');
     itemList.className = 'item-list';
+
+    // 添加删除按钮
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'delete-btn';
+    deleteBtn.innerHTML = '×';
+    deleteBtn.title = '删除物品列表';
+    
+    deleteBtn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        deleteItemList(itemList, sceneKey);
+    });
+    
+    itemList.appendChild(deleteBtn);
 
     for (const category in reward) {
         if (!reward.hasOwnProperty(category)) continue;
@@ -76,9 +89,9 @@ function createItemList(reward, ifContainRareItem, ifContainSuperRareItem, scene
         itemList.style.zIndex = '20';
     } else if (ifContainRareItem || reward.hasOwnProperty("mysekai_music_record")) {
         itemList.style.background = 'rgba(0, 0, 180, 0.5)';
-        itemList.style.zIndex = '15';
+        itemList.style.zIndex = '20';
     } else {
-        itemList.style.zIndex = '10';
+        itemList.style.zIndex = '20';
     }
 
     if (containers[sceneKey] && containers[sceneKey].querySelector('.image-container')) {
@@ -88,9 +101,143 @@ function createItemList(reward, ifContainRareItem, ifContainSuperRareItem, scene
         itemList.style.transform = `rotate(${-sceneRotations[sceneKey]}deg)`;
         
         setupDraggableItemList(itemList, sceneKey);
+        
+        // 如果提供了自定义位置，则应用
+        if (customPosition) {
+            itemList.style.left = `${customPosition.x}px`;
+            itemList.style.top = `${customPosition.y}px`;
+            
+            // 更新对应的point数据
+            const points = allPoints[sceneKey];
+            for (const point of points) {
+                if (point.itemList === itemList) {
+                    point.itemListX = customPosition.x;
+                    point.itemListY = customPosition.y;
+                    point.itemListWidth = itemList.offsetWidth;
+                    point.itemListHeight = itemList.offsetHeight;
+                    break;
+                }
+            }
+        }
     }
     
     return itemList;
+}
+
+// 删除物品列表
+function deleteItemList(itemList, sceneKey) {
+    // 查找对应的点
+    const pointIndex = allPoints[sceneKey].findIndex(point => point.itemList === itemList);
+    if (pointIndex === -1) return;
+    
+    const point = allPoints[sceneKey][pointIndex];
+    
+    // 保存删除前的状态用于撤回
+    saveDeleteState(sceneKey, point, itemList);
+    
+    // 移除物品列表和连接线
+    if (point.connectionLine) {
+        point.connectionLine.remove();
+    }
+    itemList.remove();
+    
+    // 从数组中移除
+    allPoints[sceneKey].splice(pointIndex, 1);
+    const itemListIndex = allItemLists[sceneKey].indexOf(itemList);
+    if (itemListIndex !== -1) {
+        allItemLists[sceneKey].splice(itemListIndex, 1);
+    }
+    
+    // 启用撤回按钮
+    enableUndoButton(sceneKey);
+}
+
+// 保存删除状态用于撤回
+function saveDeleteState(sceneKey, point, itemList) {
+    if (!window.deleteHistory) {
+        window.deleteHistory = {};
+    }
+    
+    if (!window.deleteHistory[sceneKey]) {
+        window.deleteHistory[sceneKey] = [];
+    }
+    
+    // 保存删除的状态
+    const deleteState = {
+        point: JSON.parse(JSON.stringify(point)), // 深拷贝点数据
+        itemListPosition: {
+            x: parseFloat(itemList.style.left) || 0,
+            y: parseFloat(itemList.style.top) || 0
+        },
+        timestamp: Date.now()
+    };
+    
+    // 移除连接线引用，因为我们会重新创建
+    delete deleteState.point.connectionLine;
+    
+    window.deleteHistory[sceneKey].push(deleteState);
+    
+    // 限制历史记录长度
+    if (window.deleteHistory[sceneKey].length > 10) {
+        window.deleteHistory[sceneKey].shift();
+    }
+}
+
+// 启用撤回按钮
+function enableUndoButton(sceneKey) {
+    const undoBtn = document.getElementById(`undoBtn-${sceneKey}`);
+    if (undoBtn) {
+        undoBtn.disabled = false;
+    }
+}
+
+// 撤回删除操作
+function undoDelete(sceneKey) {
+    if (!window.deleteHistory || !window.deleteHistory[sceneKey] || window.deleteHistory[sceneKey].length === 0) {
+        return;
+    }
+    
+    const lastDelete = window.deleteHistory[sceneKey].pop();
+    if (!lastDelete) return;
+    
+    const { point, itemListPosition } = lastDelete;
+    
+    // 重新创建物品列表
+    const itemList = createItemList(
+        point.reward, 
+        point.isRare, 
+        point.isSuperRare, 
+        sceneKey, 
+        itemListPosition
+    );
+    
+    // 重新创建点数据
+    const newPoint = {
+        x: point.x,
+        y: point.y,
+        itemList: itemList,
+        isRare: point.isRare,
+        isSuperRare: point.isSuperRare,
+        reward: point.reward,
+        connectionLine: null,
+        itemListX: itemListPosition.x,
+        itemListY: itemListPosition.y,
+        itemListWidth: itemList.offsetWidth,
+        itemListHeight: itemList.offsetHeight
+    };
+    
+    allPoints[sceneKey].push(newPoint);
+    
+    // 重新绘制连接线
+    drawConnectionLinesForScene(sceneKey);
+    
+    // 如果历史记录为空，禁用撤回按钮
+    if (!window.deleteHistory[sceneKey] || window.deleteHistory[sceneKey].length === 0) {
+        const undoBtn = document.getElementById(`undoBtn-${sceneKey}`);
+        if (undoBtn) {
+            undoBtn.disabled = true;
+        }
+    }
 }
 
 // 标记场景点
@@ -104,19 +251,53 @@ function markPointForScene(sceneKey, point, xDir, yDir) {
     const [x, y] = point.location;
     const offsetX = scene.offsetX;
     const offsetY = scene.offsetY;
-    const originX = canvas.width / 2 + offsetX;
-    const originY = canvas.height / 2 + offsetY;
-    const displayGridWidth = scene.physicalWidth * (image.clientWidth / image.naturalWidth);
-    const displayX = xDir === 'x+' ? originX + x * displayGridWidth : originX - x * displayGridWidth;
-    const displayY = yDir === 'y+' ? originY + y * displayGridWidth : originY - y * displayGridWidth;
+    
+    // 获取图像的实际显示尺寸和自然尺寸
+    const displayWidth = image.clientWidth;
+    const displayHeight = image.clientHeight;
+    const naturalWidth = image.naturalWidth;
+    const naturalHeight = image.naturalHeight;
+    
+    // 计算缩放比例 - 使用更精确的计算
+    const scaleX = displayWidth / naturalWidth;
+    const scaleY = displayHeight / naturalHeight;
+    
+    // 使用平均缩放比例来保持一致性
+    const scale = (scaleX + scaleY) / 2;
+    
+    const displayGridWidth = scene.physicalWidth * scale;
+    
+    // 计算原点位置 - 考虑缩放
+    const originX = displayWidth / 2 + offsetX * scale;
+    const originY = displayHeight / 2 + offsetY * scale;
+    
+    // 计算显示坐标 - 考虑方向和缩放
+    let displayX, displayY;
+    
+    if (xDir === 'x+') {
+        displayX = originX + x * displayGridWidth;
+    } else {
+        displayX = originX - x * displayGridWidth;
+    }
+    
+    if (yDir === 'y+') {
+        displayY = originY + y * displayGridWidth;
+    } else {
+        displayY = originY - y * displayGridWidth;
+    }
+    
     const color = FIXTURE_COLORS[point.fixtureId];
     let ifContainRareItem = false;
     let ifContainSuperRareItem = false;
 
     if (color) {
+        // 自适应圆点大小 - 基于画布尺寸计算
+        const baseSize = Math.min(displayWidth, displayHeight);
+        const dotRadius = Math.max(3, baseSize * 0.008); // 最小3px，基于画布尺寸的0.8%
+        
         ctx.fillStyle = color;
         ctx.beginPath();
-        ctx.arc(displayX, displayY, 5, 0, Math.PI * 2);
+        ctx.arc(displayX, displayY, dotRadius, 0, Math.PI * 2);
         ctx.fill();
 
         const containsRareItem = doContainsRareItem(point.reward, false);
@@ -130,7 +311,7 @@ function markPointForScene(sceneKey, point, xDir, yDir) {
             ctx.strokeStyle = 'black';
         }
         ctx.beginPath();
-        ctx.arc(displayX, displayY, 5, 0, Math.PI * 2);
+        ctx.arc(displayX, displayY, dotRadius, 0, Math.PI * 2);
         ctx.stroke();
 
         const itemList = createItemList(point.reward, ifContainRareItem, ifContainSuperRareItem, sceneKey);
@@ -145,9 +326,13 @@ function markPointForScene(sceneKey, point, xDir, yDir) {
             connectionLine: null
         });
     } else {
+        // 未知采集点的文字也自适应大小
+        const baseSize = Math.min(displayWidth, displayHeight);
+        const fontSize = Math.max(10, baseSize * 0.015); // 最小10px，基于画布尺寸的1.5%
+        
         ctx.fillStyle = 'black';
-        ctx.font = '12px Arial';
-        ctx.fillText('?', displayX - 3, displayY + 4);
+        ctx.font = `${fontSize}px Arial`;
+        ctx.fillText('?', displayX - fontSize/3, displayY + fontSize/3);
     }
 }
 
@@ -172,6 +357,16 @@ function optimizeItemListPositionsForScene(sceneKey) {
     const canvas = canvases[sceneKey];
     const points = allPoints[sceneKey];
     const containerRect = container.getBoundingClientRect();
+    
+    const rotation = sceneRotations[sceneKey];
+    let effectiveWidth = containerRect.width;
+    let effectiveHeight = containerRect.height;
+    
+    // 对于90°和270°旋转，调整有效的边界尺寸
+    if (rotation === 90 || rotation === 270) {
+        effectiveWidth = containerRect.height;
+        effectiveHeight = containerRect.width;
+    }
     
     points.sort((a, b) => {
         if (a.isSuperRare && !b.isSuperRare) return -1;
@@ -233,8 +428,9 @@ function optimizeItemListPositionsForScene(sceneKey) {
                 const testX = point.x + Math.cos(rad) * baseDistance * distanceMultiplier;
                 const testY = point.y + Math.sin(rad) * baseDistance * distanceMultiplier;
                 
-                if (testX < 5 || testX > canvas.width - itemWidth - 5 ||
-                    testY < 5 || testY > canvas.height - itemHeight - 5) {
+                // 使用调整后的边界检查
+                if (testX < 5 || testX > effectiveWidth - itemWidth - 5 ||
+                    testY < 5 || testY > effectiveHeight - itemHeight - 5) {
                     continue;
                 }
                 
@@ -289,8 +485,8 @@ function optimizeItemListPositionsForScene(sceneKey) {
                 score -= coverCount * 600;
                 
                 const edgeMargin = 30;
-                if (testX < edgeMargin || testX > canvas.width - itemWidth - edgeMargin ||
-                    testY < edgeMargin || testY > canvas.height - itemHeight - edgeMargin) {
+                if (testX < edgeMargin || testX > effectiveWidth - itemWidth - edgeMargin ||
+                    testY < edgeMargin || testY > effectiveHeight - itemHeight - edgeMargin) {
                     score -= 200;
                 }
                 
@@ -345,19 +541,23 @@ function optimizeItemListPositionsForScene(sceneKey) {
             const defaultX = point.x - displayGridWidth * 1.5;
             const defaultY = point.y - displayGridWidth / 1.2;
             
-            itemList.style.left = `${defaultX}px`;
-            itemList.style.top = `${defaultY}px`;
+            // 确保默认位置在边界内
+            const safeX = Math.max(0, Math.min(defaultX, effectiveWidth - itemWidth));
+            const safeY = Math.max(0, Math.min(defaultY, effectiveHeight - itemHeight));
             
-            point.itemListX = defaultX;
-            point.itemListY = defaultY;
+            itemList.style.left = `${safeX}px`;
+            itemList.style.top = `${safeY}px`;
+            
+            point.itemListX = safeX;
+            point.itemListY = safeY;
             point.itemListWidth = itemWidth;
             point.itemListHeight = itemHeight;
             
             placedBounds.push({
-                left: defaultX,
-                top: defaultY,
-                right: defaultX + itemWidth,
-                bottom: defaultY + itemHeight,
+                left: safeX,
+                top: safeY,
+                right: safeX + itemWidth,
+                bottom: safeY + itemHeight,
                 width: itemWidth,
                 height: itemHeight
             });
@@ -372,6 +572,19 @@ function finalAdjustItemListsForScene(sceneKey) {
     const itemLists = Array.from(containers[sceneKey].querySelectorAll('.item-list'));
     let adjusted;
     let iterations = 0;
+    
+    const container = containers[sceneKey].querySelector('.image-container');
+    const containerRect = container.getBoundingClientRect();
+    const rotation = sceneRotations[sceneKey];
+    
+    let effectiveWidth = containerRect.width;
+    let effectiveHeight = containerRect.height;
+    
+    // 对于90°和270°旋转，调整有效的边界尺寸
+    if (rotation === 90 || rotation === 270) {
+        effectiveWidth = containerRect.height;
+        effectiveHeight = containerRect.width;
+    }
     
     do {
         adjusted = false;
@@ -411,13 +624,24 @@ function finalAdjustItemListsForScene(sceneKey) {
                         const currentLeft2 = parseFloat(itemLists[j].style.left);
                         const currentTop2 = parseFloat(itemLists[j].style.top);
                         
-                        itemLists[i].style.left = `${currentLeft1 - moveX}px`;
-                        itemLists[i].style.top = `${currentTop1 - moveY}px`;
-                        itemLists[j].style.left = `${currentLeft2 + moveX}px`;
-                        itemLists[j].style.top = `${currentTop2 + moveY}px`;
+                        const newLeft1 = currentLeft1 - moveX;
+                        const newTop1 = currentTop1 - moveY;
+                        const newLeft2 = currentLeft2 + moveX;
+                        const newTop2 = currentTop2 + moveY;
                         
-                        updateItemListPosition(sceneKey, itemLists[i], currentLeft1 - moveX, currentTop1 - moveY);
-                        updateItemListPosition(sceneKey, itemLists[j], currentLeft2 + moveX, currentTop2 + moveY);
+                        // 确保新位置在边界内
+                        const safeLeft1 = Math.max(0, Math.min(newLeft1, effectiveWidth - rect1.width));
+                        const safeTop1 = Math.max(0, Math.min(newTop1, effectiveHeight - rect1.height));
+                        const safeLeft2 = Math.max(0, Math.min(newLeft2, effectiveWidth - rect2.width));
+                        const safeTop2 = Math.max(0, Math.min(newTop2, effectiveHeight - rect2.height));
+                        
+                        itemLists[i].style.left = `${safeLeft1}px`;
+                        itemLists[i].style.top = `${safeTop1}px`;
+                        itemLists[j].style.left = `${safeLeft2}px`;
+                        itemLists[j].style.top = `${safeTop2}px`;
+                        
+                        updateItemListPosition(sceneKey, itemLists[i], safeLeft1, safeTop1);
+                        updateItemListPosition(sceneKey, itemLists[j], safeLeft2, safeTop2);
                     }
                 }
             }
@@ -455,7 +679,7 @@ function drawConnectionLinesForScene(sceneKey) {
         line.style.top = `${startY}px`;
         line.style.transform = `rotate(${angle}deg)`;
         line.style.transformOrigin = '0 0';
-        line.style.zIndex = '1';
+        line.style.zIndex = '28';
         line.style.position = 'absolute';
         
         containers[sceneKey].querySelector('.image-container').appendChild(line);

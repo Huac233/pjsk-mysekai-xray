@@ -51,10 +51,27 @@ const offsetYInput = document.getElementById('offsetY');
 const jsonInput = document.getElementById('jsonInput');
 const loadingIndicator = document.getElementById('loadingIndicator');
 
+// 初始化删除历史记录
+if (!window.deleteHistory) {
+    window.deleteHistory = {
+        scene1: [],
+        scene2: [],
+        scene3: [],
+        scene4: []
+    };
+}
+
 // 事件监听器
 window.addEventListener('resize', debounce(function() {
+    // 重新初始化画布
+    initCanvases();
+    
+    // 如果有数据，重新绘制所有内容
     if (jsonInput.value) {
         parseAndMarkPoints();
+    } else {
+        // 如果没有数据，至少重新绘制网格
+        drawGrids();
     }
 }, 250));
 
@@ -80,40 +97,95 @@ function parseAndMarkPoints() {
         clearAll();
         initCanvases();
 
-        Object.keys(parsedData).forEach(siteName => {
-            const sceneKey = SITE_TO_SCENE[siteName];
-            if (sceneKey && selectedScenes.includes(sceneKey)) {
-                applySceneToMap(sceneKey);
-                const points = parsedData[siteName];
-                if (!Array.isArray(points)) {
-                    throw new Error(`数据格式错误 for ${siteName}`);
-                }
-                const scene = SCENES[sceneKey];
-                const currentXDirection = scene.xDirection;
-                const currentYDirection = scene.yDirection;
-                const currentReverseXY = scene.reverseXY;
-                const canvas = canvases[sceneKey];
-                const ctx = canvas.getContext('2d');
-                allPoints[sceneKey] = [];
-                allItemLists[sceneKey] = [];
-                
-                if (!currentReverseXY) {
-                    points.forEach(point => markPointForScene(sceneKey, point, currentXDirection, currentYDirection));
+        // 等待所有图像加载完成后再绘制
+        const imageLoadPromises = Object.keys(images).map(key => {
+            return new Promise((resolve) => {
+                if (images[key].complete) {
+                    resolve();
                 } else {
-                    points.forEach(point => markPointForScene(sceneKey, 
-                        {location: [point.location[1], point.location[0]], 
-                         fixtureId: point.fixtureId, 
-                         reward: point.reward}, 
-                        currentXDirection, currentYDirection));
+                    images[key].onload = resolve;
+                    images[key].onerror = resolve; // 即使加载失败也继续
                 }
-                
-                optimizeItemListPositionsForScene(sceneKey);
-                drawConnectionLinesForScene(sceneKey);
-            }
+            });
+        });
+
+        Promise.all(imageLoadPromises).then(() => {
+            Object.keys(parsedData).forEach(siteName => {
+                const sceneKey = SITE_TO_SCENE[siteName];
+                if (sceneKey && selectedScenes.includes(sceneKey)) {
+                    applySceneToMap(sceneKey);
+                    const points = parsedData[siteName];
+                    if (!Array.isArray(points)) {
+                        throw new Error(`数据格式错误 for ${siteName}`);
+                    }
+                    const scene = SCENES[sceneKey];
+                    const currentXDirection = scene.xDirection;
+                    const currentYDirection = scene.yDirection;
+                    const currentReverseXY = scene.reverseXY;
+                    const canvas = canvases[sceneKey];
+                    const ctx = canvas.getContext('2d');
+                    allPoints[sceneKey] = [];
+                    allItemLists[sceneKey] = [];
+                    
+                    // 为每个场景添加撤回按钮
+                    addUndoButton(sceneKey);
+                    
+                    if (!currentReverseXY) {
+                        points.forEach(point => markPointForScene(sceneKey, point, currentXDirection, currentYDirection));
+                    } else {
+                        points.forEach(point => markPointForScene(sceneKey, 
+                            {location: [point.location[1], point.location[0]], 
+                             fixtureId: point.fixtureId, 
+                             reward: point.reward}, 
+                            currentXDirection, currentYDirection));
+                    }
+                    
+                    optimizeItemListPositionsForScene(sceneKey);
+                    drawConnectionLinesForScene(sceneKey);
+                }
+            });
         });
     } catch (error) {
         console.error('解析错误:', error);
         showError("解析错误: " + error.message);
+    }
+}
+
+// 添加撤回按钮到场景
+function addUndoButton(sceneKey) {
+    const container = containers[sceneKey];
+    if (!container) return;
+    
+    // 检查是否已存在撤回按钮容器
+    let undoContainer = document.getElementById(`undoContainer-${sceneKey}`);
+    
+    if (!undoContainer) {
+        // 创建撤回按钮容器
+        undoContainer = document.createElement('div');
+        undoContainer.id = `undoContainer-${sceneKey}`;
+        undoContainer.className = 'undo-container';
+        
+        // 创建撤回按钮
+        const undoBtn = document.createElement('button');
+        undoBtn.id = `undoBtn-${sceneKey}`;
+        undoBtn.className = 'undo-btn';
+        undoBtn.innerHTML = '↶';
+        undoBtn.title = '撤回删除';
+        undoBtn.disabled = true;
+        
+        undoBtn.addEventListener('click', function() {
+            undoDelete(sceneKey);
+        });
+        
+        // 创建提示文字
+        const tooltip = document.createElement('div');
+        tooltip.id = `undoTooltip-${sceneKey}`;
+        tooltip.className = 'undo-tooltip';
+        tooltip.textContent = '撤回删除';
+        
+        undoContainer.appendChild(undoBtn);
+        undoContainer.appendChild(tooltip);
+        container.appendChild(undoContainer);
     }
 }
 
@@ -181,14 +253,21 @@ function setDirection(newXDirection, newYDirection) {
 
 // 清除场景物品列表
 function clearItemListsForScene(sceneKey) {
-    containers[sceneKey].querySelectorAll('.item-list').forEach(item => item.remove());
-    containers[sceneKey].querySelectorAll('.connection-line').forEach(line => line.remove());
+    const container = containers[sceneKey];
+    container.querySelectorAll('.item-list').forEach(item => item.remove());
+    container.querySelectorAll('.connection-line').forEach(line => line.remove());
+    container.querySelectorAll('.undo-container').forEach(container => container.remove());
     if (magneticGuides[sceneKey]) {
         magneticGuides[sceneKey].remove();
         magneticGuides[sceneKey] = null;
     }
     allPoints[sceneKey] = [];
     allItemLists[sceneKey] = [];
+    
+    // 重置删除历史
+    if (window.deleteHistory && window.deleteHistory[sceneKey]) {
+        window.deleteHistory[sceneKey] = [];
+    }
 }
 
 // 清除所有

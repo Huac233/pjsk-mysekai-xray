@@ -12,6 +12,11 @@ function setupDraggableItemList(itemList, sceneKey) {
     itemList.addEventListener('touchstart', startDrag, { passive: false });
     
     function startDrag(e) {
+        // 如果点击的是删除按钮，不开始拖拽
+        if (e.target.classList.contains('delete-btn')) {
+            return;
+        }
+        
         e.preventDefault();
         isDragging = true;
         
@@ -62,12 +67,10 @@ function setupDraggableItemList(itemList, sceneKey) {
         newX = magneticResult.x;
         newY = magneticResult.y;
         
-        const container = containers[sceneKey].querySelector('.image-container');
-        const containerRect = container.getBoundingClientRect();
-        const itemRect = itemList.getBoundingClientRect();
-        
-        const maxX = containerRect.width - itemRect.width;
-        const maxY = containerRect.height - itemRect.height;
+        // 获取旋转后的有效边界
+        const boundaryResult = getRotatedBoundary(sceneKey, itemList);
+        const maxX = boundaryResult.maxX;
+        const maxY = boundaryResult.maxY;
         
         newX = Math.max(0, Math.min(newX, maxX));
         newY = Math.max(0, Math.min(newY, maxY));
@@ -88,6 +91,30 @@ function setupDraggableItemList(itemList, sceneKey) {
         document.removeEventListener('mouseup', stopDrag);
         document.removeEventListener('touchmove', drag);
         document.removeEventListener('touchend', stopDrag);
+    }
+}
+
+// 获取旋转后的边界
+function getRotatedBoundary(sceneKey, itemList) {
+    const container = containers[sceneKey].querySelector('.image-container');
+    const containerRect = container.getBoundingClientRect();
+    const itemRect = itemList.getBoundingClientRect();
+    
+    const rotation = sceneRotations[sceneKey];
+    
+    // 对于90°和270°旋转，交换边界检查的逻辑
+    if (rotation === 90 || rotation === 270) {
+        // 旋转后，容器的有效边界发生变化
+        return {
+            maxX: containerRect.height - itemRect.width,
+            maxY: containerRect.width - itemRect.height
+        };
+    } else {
+        // 0°和180°旋转，使用正常边界
+        return {
+            maxX: containerRect.width - itemRect.width,
+            maxY: containerRect.height - itemRect.height
+        };
     }
 }
 
@@ -118,6 +145,16 @@ function applyMagneticEffect(sceneKey, x, y, itemList) {
     const containerRect = container.getBoundingClientRect();
     const itemRect = itemList.getBoundingClientRect();
     
+    const rotation = sceneRotations[sceneKey];
+    let effectiveWidth = containerRect.width;
+    let effectiveHeight = containerRect.height;
+    
+    // 对于90°和270°旋转，调整有效的边界尺寸
+    if (rotation === 90 || rotation === 270) {
+        effectiveWidth = containerRect.height;
+        effectiveHeight = containerRect.width;
+    }
+    
     if (Math.abs(x) < magneticDistance) {
         newX = 0;
         showMagneticGuide(sceneKey, 'vertical', 0);
@@ -128,14 +165,14 @@ function applyMagneticEffect(sceneKey, x, y, itemList) {
         showMagneticGuide(sceneKey, 'horizontal', 0);
     }
     
-    if (Math.abs(containerRect.width - (x + itemRect.width)) < magneticDistance) {
-        newX = containerRect.width - itemRect.width;
-        showMagneticGuide(sceneKey, 'vertical', containerRect.width);
+    if (Math.abs(effectiveWidth - (x + itemRect.width)) < magneticDistance) {
+        newX = effectiveWidth - itemRect.width;
+        showMagneticGuide(sceneKey, 'vertical', effectiveWidth);
     }
     
-    if (Math.abs(containerRect.height - (y + itemRect.height)) < magneticDistance) {
-        newY = containerRect.height - itemRect.height;
-        showMagneticGuide(sceneKey, 'horizontal', containerRect.height);
+    if (Math.abs(effectiveHeight - (y + itemRect.height)) < magneticDistance) {
+        newY = effectiveHeight - itemRect.height;
+        showMagneticGuide(sceneKey, 'horizontal', effectiveHeight);
     }
     
     return { x: newX, y: newY };

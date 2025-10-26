@@ -35,9 +35,10 @@ function drawGridForScene(sceneKey) {
     const naturalHeight = image.naturalHeight;
     const scaleX = displayWidth / naturalWidth;
     const scaleY = displayHeight / naturalHeight;
-    const displayGridWidth = physicalGridWidth * scaleX;
-    const originX = displayWidth / 2 + offsetX;
-    const originY = displayHeight / 2 + offsetY;
+    const scale = (scaleX + scaleY) / 2;
+    const displayGridWidth = physicalGridWidth * scale;
+    const originX = displayWidth / 2 + offsetX * scale;
+    const originY = displayHeight / 2 + offsetY * scale;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.strokeStyle = 'rgba(255, 0, 0, 0.3)';
