@@ -1,11 +1,9 @@
 // 物品渲染功能
 
-// 创建物品列表
 function createItemList(reward, ifContainRareItem, ifContainSuperRareItem, sceneKey, customPosition = null) {
     const itemList = document.createElement('div');
     itemList.className = 'item-list';
 
-    // 添加删除按钮
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'delete-btn';
     deleteBtn.innerHTML = '×';
@@ -27,6 +25,8 @@ function createItemList(reward, ifContainRareItem, ifContainSuperRareItem, scene
             
             if (category === "mysekai_music_record") {
                 texture = getMusicRecordUrl(itemId);
+            } else if (category === "mysekai_blueprint") {
+                texture = './icon/Texture2D/item_surplus_blueprint.png';
             } else {
                 texture = ITEM_TEXTURES[category]?.[itemId] || 'missing.png';
             }
@@ -54,6 +54,8 @@ function createItemList(reward, ifContainRareItem, ifContainSuperRareItem, scene
                     } else {
                         itemImage.src = originalUrl;
                     }
+                } else if (category === "mysekai_blueprint") {
+                    itemImage.src = './icon/Texture2D/item_surplus_blueprint.png';
                 } else {
                     itemImage.src = texture;
                 }
@@ -65,6 +67,8 @@ function createItemList(reward, ifContainRareItem, ifContainSuperRareItem, scene
                 if (category === "mysekai_music_record" && retryCount < maxRetries) {
                     retryCount++;
                     loadImage(true);
+                } else if (category === "mysekai_blueprint") {
+                    this.src = './icon/Texture2D/item_surplus_blueprint.png';
                 } else {
                     this.src = (category === "mysekai_music_record") 
                         ? './icon/Texture2D/item_surplus_music_record.png' 
@@ -87,7 +91,7 @@ function createItemList(reward, ifContainRareItem, ifContainSuperRareItem, scene
     if (ifContainSuperRareItem) {
         itemList.style.background = 'rgba(255, 0, 0, 0.5)';
         itemList.style.zIndex = '20';
-    } else if (ifContainRareItem || reward.hasOwnProperty("mysekai_music_record")) {
+    } else if (ifContainRareItem || reward.hasOwnProperty("mysekai_music_record") || reward.hasOwnProperty("mysekai_blueprint")) {
         itemList.style.background = 'rgba(0, 0, 180, 0.5)';
         itemList.style.zIndex = '20';
     } else {
@@ -102,12 +106,10 @@ function createItemList(reward, ifContainRareItem, ifContainSuperRareItem, scene
         
         setupDraggableItemList(itemList, sceneKey);
         
-        // 如果提供了自定义位置，则应用
         if (customPosition) {
             itemList.style.left = `${customPosition.x}px`;
             itemList.style.top = `${customPosition.y}px`;
             
-            // 更新对应的point数据
             const points = allPoints[sceneKey];
             for (const point of points) {
                 if (point.itemList === itemList) {
@@ -124,35 +126,28 @@ function createItemList(reward, ifContainRareItem, ifContainSuperRareItem, scene
     return itemList;
 }
 
-// 删除物品列表
 function deleteItemList(itemList, sceneKey) {
-    // 查找对应的点
     const pointIndex = allPoints[sceneKey].findIndex(point => point.itemList === itemList);
     if (pointIndex === -1) return;
     
     const point = allPoints[sceneKey][pointIndex];
     
-    // 保存删除前的状态用于撤回
     saveDeleteState(sceneKey, point, itemList);
     
-    // 移除物品列表和连接线
     if (point.connectionLine) {
         point.connectionLine.remove();
     }
     itemList.remove();
     
-    // 从数组中移除
     allPoints[sceneKey].splice(pointIndex, 1);
     const itemListIndex = allItemLists[sceneKey].indexOf(itemList);
     if (itemListIndex !== -1) {
         allItemLists[sceneKey].splice(itemListIndex, 1);
     }
     
-    // 启用撤回按钮
     enableUndoButton(sceneKey);
 }
 
-// 保存删除状态用于撤回
 function saveDeleteState(sceneKey, point, itemList) {
     if (!window.deleteHistory) {
         window.deleteHistory = {};
@@ -162,9 +157,8 @@ function saveDeleteState(sceneKey, point, itemList) {
         window.deleteHistory[sceneKey] = [];
     }
     
-    // 保存删除的状态
     const deleteState = {
-        point: JSON.parse(JSON.stringify(point)), // 深拷贝点数据
+        point: JSON.parse(JSON.stringify(point)),
         itemListPosition: {
             x: parseFloat(itemList.style.left) || 0,
             y: parseFloat(itemList.style.top) || 0
@@ -172,18 +166,15 @@ function saveDeleteState(sceneKey, point, itemList) {
         timestamp: Date.now()
     };
     
-    // 移除连接线引用，因为我们会重新创建
     delete deleteState.point.connectionLine;
     
     window.deleteHistory[sceneKey].push(deleteState);
     
-    // 限制历史记录长度
     if (window.deleteHistory[sceneKey].length > 10) {
         window.deleteHistory[sceneKey].shift();
     }
 }
 
-// 启用撤回按钮
 function enableUndoButton(sceneKey) {
     const undoBtn = document.getElementById(`undoBtn-${sceneKey}`);
     if (undoBtn) {
@@ -191,7 +182,6 @@ function enableUndoButton(sceneKey) {
     }
 }
 
-// 撤回删除操作
 function undoDelete(sceneKey) {
     if (!window.deleteHistory || !window.deleteHistory[sceneKey] || window.deleteHistory[sceneKey].length === 0) {
         return;
@@ -202,7 +192,6 @@ function undoDelete(sceneKey) {
     
     const { point, itemListPosition } = lastDelete;
     
-    // 重新创建物品列表
     const itemList = createItemList(
         point.reward, 
         point.isRare, 
@@ -211,7 +200,6 @@ function undoDelete(sceneKey) {
         itemListPosition
     );
     
-    // 重新创建点数据
     const newPoint = {
         x: point.x,
         y: point.y,
@@ -228,10 +216,8 @@ function undoDelete(sceneKey) {
     
     allPoints[sceneKey].push(newPoint);
     
-    // 重新绘制连接线
     drawConnectionLinesForScene(sceneKey);
     
-    // 如果历史记录为空，禁用撤回按钮
     if (!window.deleteHistory[sceneKey] || window.deleteHistory[sceneKey].length === 0) {
         const undoBtn = document.getElementById(`undoBtn-${sceneKey}`);
         if (undoBtn) {
@@ -240,7 +226,6 @@ function undoDelete(sceneKey) {
     }
 }
 
-// 标记场景点
 function markPointForScene(sceneKey, point, xDir, yDir) {
     const canvas = canvases[sceneKey];
     if (!canvas) return;
@@ -252,26 +237,21 @@ function markPointForScene(sceneKey, point, xDir, yDir) {
     const offsetX = scene.offsetX;
     const offsetY = scene.offsetY;
     
-    // 获取图像的实际显示尺寸和自然尺寸
     const displayWidth = image.clientWidth;
     const displayHeight = image.clientHeight;
     const naturalWidth = image.naturalWidth;
     const naturalHeight = image.naturalHeight;
     
-    // 计算缩放比例 - 使用更精确的计算
     const scaleX = displayWidth / naturalWidth;
     const scaleY = displayHeight / naturalHeight;
     
-    // 使用平均缩放比例来保持一致性
     const scale = (scaleX + scaleY) / 2;
     
     const displayGridWidth = scene.physicalWidth * scale;
     
-    // 计算原点位置 - 考虑缩放
     const originX = displayWidth / 2 + offsetX * scale;
     const originY = displayHeight / 2 + offsetY * scale;
     
-    // 计算显示坐标 - 考虑方向和缩放
     let displayX, displayY;
     
     if (xDir === 'x+') {
@@ -291,9 +271,8 @@ function markPointForScene(sceneKey, point, xDir, yDir) {
     let ifContainSuperRareItem = false;
 
     if (color) {
-        // 自适应圆点大小 - 基于画布尺寸计算
         const baseSize = Math.min(displayWidth, displayHeight);
-        const dotRadius = Math.max(3, baseSize * 0.008); // 最小3px，基于画布尺寸的0.8%
+        const dotRadius = Math.max(3, baseSize * 0.008);
         
         ctx.fillStyle = color;
         ctx.beginPath();
@@ -326,9 +305,8 @@ function markPointForScene(sceneKey, point, xDir, yDir) {
             connectionLine: null
         });
     } else {
-        // 未知采集点的文字也自适应大小
         const baseSize = Math.min(displayWidth, displayHeight);
-        const fontSize = Math.max(10, baseSize * 0.015); // 最小10px，基于画布尺寸的1.5%
+        const fontSize = Math.max(10, baseSize * 0.015);
         
         ctx.fillStyle = 'black';
         ctx.font = `${fontSize}px Arial`;
@@ -336,7 +314,6 @@ function markPointForScene(sceneKey, point, xDir, yDir) {
     }
 }
 
-// 检查是否包含稀有物品
 function doContainsRareItem(reward, isSuperRare = false) {
     let compareList = isSuperRare ? SUPER_RARE_ITEM : RARE_ITEM;
     for (const category in reward) {
@@ -351,7 +328,6 @@ function doContainsRareItem(reward, isSuperRare = false) {
     return false;
 }
 
-// 优化物品列表位置
 function optimizeItemListPositionsForScene(sceneKey) {
     const container = containers[sceneKey].querySelector('.image-container');
     const canvas = canvases[sceneKey];
@@ -362,7 +338,6 @@ function optimizeItemListPositionsForScene(sceneKey) {
     let effectiveWidth = containerRect.width;
     let effectiveHeight = containerRect.height;
     
-    // 对于90°和270°旋转，调整有效的边界尺寸
     if (rotation === 90 || rotation === 270) {
         effectiveWidth = containerRect.height;
         effectiveHeight = containerRect.width;
@@ -428,7 +403,6 @@ function optimizeItemListPositionsForScene(sceneKey) {
                 const testX = point.x + Math.cos(rad) * baseDistance * distanceMultiplier;
                 const testY = point.y + Math.sin(rad) * baseDistance * distanceMultiplier;
                 
-                // 使用调整后的边界检查
                 if (testX < 5 || testX > effectiveWidth - itemWidth - 5 ||
                     testY < 5 || testY > effectiveHeight - itemHeight - 5) {
                     continue;
@@ -541,7 +515,6 @@ function optimizeItemListPositionsForScene(sceneKey) {
             const defaultX = point.x - displayGridWidth * 1.5;
             const defaultY = point.y - displayGridWidth / 1.2;
             
-            // 确保默认位置在边界内
             const safeX = Math.max(0, Math.min(defaultX, effectiveWidth - itemWidth));
             const safeY = Math.max(0, Math.min(defaultY, effectiveHeight - itemHeight));
             
@@ -567,7 +540,6 @@ function optimizeItemListPositionsForScene(sceneKey) {
     finalAdjustItemListsForScene(sceneKey);
 }
 
-// 最终调整物品列表位置
 function finalAdjustItemListsForScene(sceneKey) {
     const itemLists = Array.from(containers[sceneKey].querySelectorAll('.item-list'));
     let adjusted;
@@ -580,7 +552,6 @@ function finalAdjustItemListsForScene(sceneKey) {
     let effectiveWidth = containerRect.width;
     let effectiveHeight = containerRect.height;
     
-    // 对于90°和270°旋转，调整有效的边界尺寸
     if (rotation === 90 || rotation === 270) {
         effectiveWidth = containerRect.height;
         effectiveHeight = containerRect.width;
@@ -629,7 +600,6 @@ function finalAdjustItemListsForScene(sceneKey) {
                         const newLeft2 = currentLeft2 + moveX;
                         const newTop2 = currentTop2 + moveY;
                         
-                        // 确保新位置在边界内
                         const safeLeft1 = Math.max(0, Math.min(newLeft1, effectiveWidth - rect1.width));
                         const safeTop1 = Math.max(0, Math.min(newTop1, effectiveHeight - rect1.height));
                         const safeLeft2 = Math.max(0, Math.min(newLeft2, effectiveWidth - rect2.width));
@@ -649,7 +619,6 @@ function finalAdjustItemListsForScene(sceneKey) {
     } while (adjusted && iterations < 30);
 }
 
-// 绘制连接线
 function drawConnectionLinesForScene(sceneKey) {
     containers[sceneKey].querySelectorAll('.connection-line').forEach(line => line.remove());
     

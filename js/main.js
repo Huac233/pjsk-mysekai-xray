@@ -1,6 +1,5 @@
 // 主应用程序逻辑
 
-// 全局变量
 let allPoints = { scene1: [], scene2: [], scene3: [], scene4: [] };
 let allItemLists = { scene1: [], scene2: [], scene3: [], scene4: [] };
 let sceneRotations = { scene1: 0, scene2: 0, scene3: 0, scene4: 0 };
@@ -9,7 +8,6 @@ let globalXDirection = 'x+';
 let globalYDirection = 'y-';
 let globalReverseXY = false;
 
-// DOM元素引用
 const images = {
     scene1: document.getElementById('image1'),
     scene2: document.getElementById('image2'),
@@ -51,7 +49,6 @@ const offsetYInput = document.getElementById('offsetY');
 const jsonInput = document.getElementById('jsonInput');
 const loadingIndicator = document.getElementById('loadingIndicator');
 
-// 初始化删除历史记录
 if (!window.deleteHistory) {
     window.deleteHistory = {
         scene1: [],
@@ -61,23 +58,30 @@ if (!window.deleteHistory) {
     };
 }
 
-// 事件监听器
 window.addEventListener('resize', debounce(function() {
-    // 重新初始化画布
     initCanvases();
     
-    // 如果有数据，重新绘制所有内容
-    if (jsonInput.value) {
+    if (jsonInput.value && hasValidData()) {
         parseAndMarkPoints();
-    } else {
-        // 如果没有数据，至少重新绘制网格
-        drawGrids();
     }
 }, 250));
 
 window.addEventListener('resize', initCanvases);
 
-// 主要功能函数
+function hasValidData() {
+    try {
+        const inputText = jsonInput.value;
+        if (!inputText.trim()) {
+            return false;
+        }
+        
+        const parsedData = parseInputText(inputText);
+        return Object.keys(parsedData).length > 0;
+    } catch (error) {
+        return false;
+    }
+}
+
 function parseAndMarkPoints() {
     try {
         const inputText = jsonInput.value;
@@ -97,14 +101,13 @@ function parseAndMarkPoints() {
         clearAll();
         initCanvases();
 
-        // 等待所有图像加载完成后再绘制
         const imageLoadPromises = Object.keys(images).map(key => {
             return new Promise((resolve) => {
                 if (images[key].complete) {
                     resolve();
                 } else {
                     images[key].onload = resolve;
-                    images[key].onerror = resolve; // 即使加载失败也继续
+                    images[key].onerror = resolve;
                 }
             });
         });
@@ -127,7 +130,6 @@ function parseAndMarkPoints() {
                     allPoints[sceneKey] = [];
                     allItemLists[sceneKey] = [];
                     
-                    // 为每个场景添加撤回按钮
                     addUndoButton(sceneKey);
                     
                     if (!currentReverseXY) {
@@ -151,21 +153,17 @@ function parseAndMarkPoints() {
     }
 }
 
-// 添加撤回按钮到场景
 function addUndoButton(sceneKey) {
     const container = containers[sceneKey];
     if (!container) return;
     
-    // 检查是否已存在撤回按钮容器
     let undoContainer = document.getElementById(`undoContainer-${sceneKey}`);
     
     if (!undoContainer) {
-        // 创建撤回按钮容器
         undoContainer = document.createElement('div');
         undoContainer.id = `undoContainer-${sceneKey}`;
         undoContainer.className = 'undo-container';
         
-        // 创建撤回按钮
         const undoBtn = document.createElement('button');
         undoBtn.id = `undoBtn-${sceneKey}`;
         undoBtn.className = 'undo-btn';
@@ -177,7 +175,6 @@ function addUndoButton(sceneKey) {
             undoDelete(sceneKey);
         });
         
-        // 创建提示文字
         const tooltip = document.createElement('div');
         tooltip.id = `undoTooltip-${sceneKey}`;
         tooltip.className = 'undo-tooltip';
@@ -189,7 +186,6 @@ function addUndoButton(sceneKey) {
     }
 }
 
-// 解析输入文本
 function parseInputText(text) {
     const lines = text.split('\n');
     const data = {};
@@ -230,13 +226,11 @@ function parseInputText(text) {
     return data;
 }
 
-// 获取选中的场景
 function getSelectedScenes() {
     const checkboxes = document.querySelectorAll('.scene-checkboxes input[type="checkbox"]');
     return Array.from(checkboxes).filter(cb => cb.checked).map(cb => cb.value);
 }
 
-// 应用场景到地图
 function applySceneToMap(sceneKey) {
     const selectedScene = SCENES[sceneKey];
     if (selectedScene && images[sceneKey]) {
@@ -244,14 +238,12 @@ function applySceneToMap(sceneKey) {
     }
 }
 
-// 设置方向
 function setDirection(newXDirection, newYDirection) {
     globalXDirection = newXDirection;
     globalYDirection = newYDirection;
     parseAndMarkPoints();
 }
 
-// 清除场景物品列表
 function clearItemListsForScene(sceneKey) {
     const container = containers[sceneKey];
     container.querySelectorAll('.item-list').forEach(item => item.remove());
@@ -264,13 +256,11 @@ function clearItemListsForScene(sceneKey) {
     allPoints[sceneKey] = [];
     allItemLists[sceneKey] = [];
     
-    // 重置删除历史
     if (window.deleteHistory && window.deleteHistory[sceneKey]) {
         window.deleteHistory[sceneKey] = [];
     }
 }
 
-// 清除所有
 function clearAll() {
     Object.keys(canvases).forEach(key => {
         const ctx = canvases[key].getContext('2d');
@@ -279,7 +269,6 @@ function clearAll() {
     });
 }
 
-// 旋转场景
 function rotateScene(sceneKey, angle) {
     sceneRotations[sceneKey] = (sceneRotations[sceneKey] + angle) % 360;
     if (sceneRotations[sceneKey] < 0) {
@@ -299,7 +288,6 @@ function rotateScene(sceneKey, angle) {
     drawConnectionLinesForScene(sceneKey);
 }
 
-// 重置旋转
 function resetRotation(sceneKey) {
     sceneRotations[sceneKey] = 0;
     const imageContainer = imageContainers[sceneKey];
@@ -315,35 +303,55 @@ function resetRotation(sceneKey) {
     drawConnectionLinesForScene(sceneKey);
 }
 
-// 截图功能
+function getBrowserZoomLevel() {
+    const zoomLevel = Math.round(window.devicePixelRatio * 100);
+    return zoomLevel;
+}
+
 async function captureScreenshots() {
     if (window.location.protocol === 'file:') {
         alert('截图功能在file://协议下不可用，请使用以下方法之一：\n\n1. 使用Python HTTP服务器：\n   python -m http.server\n\n使用http://localhost:8000访问此页面。2. 使用Github page部署的网页');
         return;
     }
 
-    const containers = document.querySelectorAll('.container');
-    for (let i = 0; i < containers.length; i++) {
-        const container = containers[i];
-        const rect = container.getBoundingClientRect();
-        const name = SCENES[`scene${i+1}`].name;
+    const zoomLevel = getBrowserZoomLevel();
+    if (zoomLevel !== 100) {
+        const shouldContinue = confirm(`检测到浏览器缩放为${zoomLevel}%，截图可能会出现物品布局异常。\n\n建议将浏览器缩放设置为100%后再进行截图，以获得最佳效果。\n\n是否继续截图？`);
+        if (!shouldContinue) {
+            return;
+        }
+    }
 
-        htmlToImage.toPng(container, {
-            width: rect.width,
-            height: rect.height,
-            useCORS: true,
-            allowTaint: true,
-            pixelRatio: window.devicePixelRatio
-        })
-        .then(function (dataUrl) {
+    const selectedScenes = getSelectedScenes();
+    
+    if (selectedScenes.length === 0) {
+        alert('请至少选择一个场景进行截图');
+        return;
+    }
+
+    for (const sceneKey of selectedScenes) {
+        const container = containers[sceneKey];
+        if (!container) continue;
+        
+        const rect = container.getBoundingClientRect();
+        const name = SCENES[sceneKey].name;
+
+        try {
+            const dataUrl = await htmlToImage.toPng(container, {
+                width: rect.width,
+                height: rect.height,
+                useCORS: true,
+                allowTaint: true,
+                pixelRatio: window.devicePixelRatio
+            });
+            
             const link = document.createElement('a');
             link.href = dataUrl;
             link.download = `${name}.png`;
             link.click();
-        })
-        .catch(function (error) {
+        } catch (error) {
             console.error('Error capturing screenshot:', error);
-            alert('截图失败: ' + error.message);
-        });
+            alert(`截图失败: ${error.message}`);
+        }
     }
 }

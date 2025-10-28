@@ -52,6 +52,7 @@ const SITE_TO_SCENE = {
 
 // 采集点颜色配置
 const FIXTURE_COLORS = {
+    111: '#f9f9f9',
     112: '#f9f9f9',
     1001: '#da6d42',
     1002: '#da6d42',
@@ -62,6 +63,7 @@ const FIXTURE_COLORS = {
     2003: '#d5d5d5',
     2004: '#a7c7cb',
     2005: '#9933cc',
+    2006: '#878685',
     3001: '#c95a49',
     4001: '#f8729a',
     4002: '#f8729a',
@@ -80,9 +82,6 @@ const FIXTURE_COLORS = {
     4015: '#f8729a',
     4016: '#f8729a',
     4017: '#f8729a',
-    4018: '#f8729a',
-    4019: '#f8729a',
-    4020: '#f8729a',
     5001: '#f6f5f2',
     5002: '#f6f5f2',
     5003: '#f6f5f2',
@@ -93,6 +92,8 @@ const FIXTURE_COLORS = {
     5104: '#f6f5f2',
     6001: '#6f4e37',
     7001: '#a5d9ff',
+    8001: '#f8729a',
+    8002: '#f8729a'
 };
 
 // 物品纹理映射
@@ -188,7 +189,8 @@ const ITEM_TEXTURES = {
         "482": "./icon/Texture2D/mdl_non1001_before_sprout1_482.png",
         "483": "./icon/Texture2D/mdl_non1001_before_sprout1_483.png"
     },
-    mysekai_music_record: {}
+    mysekai_music_record: {},
+    mysekai_blueprint: {}
 };
 
 // 稀有物品配置
@@ -196,14 +198,16 @@ const RARE_ITEM = {
     mysekai_material: [11, 32, 33, 34, 61, 62, 63],
     mysekai_item: [7],
     mysekai_fixture: [118, 119, 120],
-    mysekai_music_record: []
+    mysekai_music_record: [],
+    mysekai_blueprint: []
 };
 
 const SUPER_RARE_ITEM = {
     mysekai_material: [5, 12, 20, 24, 64, 65],
     mysekai_item: [],
     mysekai_fixture: [121],
-    mysekai_music_record: []
+    mysekai_music_record: [],
+    mysekai_blueprint: []
 };
 
 // 代理配置

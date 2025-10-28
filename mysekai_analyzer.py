@@ -1,6 +1,7 @@
 # run this file with the following command:
 # pip install loguru msgspec msgpack pycryptodome
 # python mysekai_analyzer.py /path/to/your/mysekai_file
+# mysekai_analyzer.py
 import os
 import sys
 import argparse
@@ -74,24 +75,20 @@ class UserMysekaiSiteHarvestResourceDrop(Struct):
     mysekaiSiteHarvestResourceDropStatus: str
     quantity: int
 
-class Map(Struct, kw_only=True):
-    mysekaiSiteId: int
-    siteName: str = None
-    userMysekaiSiteHarvestFixtures: list
-    userMysekaiSiteHarvestResourceDrops: list
-
 SUPER_RARE_ITEM = {
     'mysekai_material': [5, 12, 20, 24, 64, 65],
     'mysekai_item': [],
     'mysekai_fixture': [121],
-    'mysekai_music_record': []
+    'mysekai_music_record': [],
+    'mysekai_blueprint': []
 }
 
 RARE_ITEM = {
     'mysekai_material': [11, 32, 33, 34, 61, 62, 63],
     'mysekai_item': [7],
     'mysekai_fixture': [118, 119, 120],
-    'mysekai_music_record': []
+    'mysekai_music_record': [],
+    'mysekai_blueprint': []
 }
 
 ITEM_NAMES = {
@@ -119,7 +116,8 @@ ITEM_NAMES = {
         120: "热带树的树苗",
         121: "夕桐的树苗"
     },
-    'mysekai_music_record': {}
+    'mysekai_music_record': {},
+    'mysekai_blueprint': {}
 }
 
 SITE_ID = {
@@ -159,7 +157,6 @@ def parse_map(user_data: dict):
         
         mp_detail = []
         
-        # 处理采集点
         fixtures = map_data.get("userMysekaiSiteHarvestFixtures", [])
         for fixture in fixtures:
             if fixture.get("userMysekaiSiteHarvestFixtureStatus") == "spawned":
@@ -169,7 +166,6 @@ def parse_map(user_data: dict):
                     "reward": {}
                 })
         
-        # 处理掉落物
         drops = map_data.get("userMysekaiSiteHarvestResourceDrops", [])
         for drop in drops:
             pos = (drop.get("positionX", 0), drop.get("positionZ", 0))
@@ -184,7 +180,6 @@ def parse_map(user_data: dict):
                 item["reward"].setdefault(resource_type, {})
                 item["reward"][resource_type][resource_id] = item["reward"][resource_type].get(resource_id, 0) + quantity
                 
-                # 检查超级稀有物品
                 if (resource_type in SUPER_RARE_ITEM and int(resource_id) in SUPER_RARE_ITEM[resource_type]):
                     item_name = ITEM_NAMES.get(resource_type, {}).get(int(resource_id), f"未知{resource_type} {resource_id}")
                     super_rare_items_found.append({
@@ -197,7 +192,6 @@ def parse_map(user_data: dict):
                         'quantity': quantity
                     })
                 
-                # 检查稀有物品
                 if (resource_type in RARE_ITEM and int(resource_id) in RARE_ITEM[resource_type]):
                     item_name = ITEM_NAMES.get(resource_type, {}).get(int(resource_id), f"未知{resource_type} {resource_id}")
                     rare_items_found.append({
@@ -210,7 +204,6 @@ def parse_map(user_data: dict):
                         'quantity': quantity
                     })
                 
-                # 检查唱片
                 if resource_type == "mysekai_music_record":
                     music_id = int(resource_id)
                     item_name = ITEM_NAMES.get(resource_type, {}).get(music_id, f"歌曲{music_id}")
@@ -232,26 +225,21 @@ def parse_map(user_data: dict):
     return processed_map, rare_items_found, super_rare_items_found, music_records_found
 
 def unmsgpack(data: bytes) -> dict:
-    """解包msgpack数据"""
     return unpackb(data, strict_map_key=False) if len(data) > 0 else {}
 
 def decrypt(ciphertext: bytes, key: bytes, iv: bytes) -> bytes:
-    """AES解密"""
     cipher = AES.new(key, AES.MODE_CBC, iv=iv)
     plaintext = unpad(cipher.decrypt(ciphertext), 16)
     return plaintext
 
 def start_http_server():
-    """在新控制台中启动HTTP服务器"""
     import webbrowser
     
-    # 启动HTTP服务器的新控制台
     cmd = [sys.executable, "-c", """
 import http.server
 import socketserver
 import signal
 import sys
-import time
 
 PORT = 8000
 
@@ -265,7 +253,6 @@ def signal_handler(sig, frame):
 
 signal.signal(signal.SIGINT, signal_handler)
 
-# 设置socket选项，允许地址重用
 class MyTCPServer(socketserver.TCPServer):
     allow_reuse_address = True
 
@@ -279,15 +266,11 @@ except KeyboardInterrupt:
     sys.exit(0)
 """]
     
-    # 在新控制台中启动服务器
     subprocess.Popen(cmd, creationflags=subprocess.CREATE_NEW_CONSOLE)
-    
-    # 打开浏览器
     webbrowser.open(f"http://localhost:8000")
     print("浏览器已自动打开，HTTP服务器在新控制台中运行")
 
 def process_mysekai_file(file_path: str):
-    """处理mysekai文件"""
     try:
         with open(file_path, 'rb') as f:
             file_content = f.read()
@@ -302,7 +285,6 @@ def process_mysekai_file(file_path: str):
         for k, v in result.items():
             logger.info(f"| Site: {k} \n {json.dumps(v)}")
 
-        # 显示唱片信息
         if music_records:
             logger.info("=" * 60)
             logger.info("唱片发现")
@@ -318,7 +300,6 @@ def process_mysekai_file(file_path: str):
         else:
             logger.info("未发现唱片")
 
-        # 显示稀有物品统计
         if rare_items:
             logger.info("=" * 60)
             logger.info("稀有物品统计")
@@ -345,7 +326,6 @@ def process_mysekai_file(file_path: str):
         else:
             logger.info("未发现稀有物品")
 
-        # 显示超级稀有物品
         if super_rare_items:
             logger.info("=" * 60)
             logger.info("重要掉落物发现！")
@@ -369,7 +349,6 @@ def process_mysekai_file(file_path: str):
         raise
 
 def main():
-    """主函数"""
     parser = argparse.ArgumentParser(description='解析mysekai文件')
     parser.add_argument('file', nargs='?', default='mysekai', help='mysekai文件路径 (默认: mysekai)')
     args = parser.parse_args()
@@ -382,7 +361,6 @@ def main():
     
     try:
         process_mysekai_file(file_path)
-        # 主程序直接结束，HTTP服务器在新窗口中持续运行
     except Exception as e:
         logger.error(f"程序执行失败: {e}")
         sys.exit(1)
