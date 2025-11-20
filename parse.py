@@ -6,6 +6,7 @@ import sys
 import asyncio
 import json
 import base64
+import io
 from pathlib import Path
 from subprocess import Popen, PIPE, CREATE_NEW_CONSOLE
 
@@ -248,6 +249,23 @@ def decrypt(ciphertext: bytes, key: bytes, iv: bytes) -> bytes:
     plaintext = unpad(cipher.decrypt(ciphertext), 16)
     return plaintext
 
+def copy_log_to_clipboard(log_content):
+    """将日志内容复制到粘贴板"""
+    try:
+        import pyperclip
+        pyperclip.copy(log_content)
+        print("日志内容已复制到粘贴板")
+    except ImportError:
+        try:
+            import win32clipboard
+            win32clipboard.OpenClipboard()
+            win32clipboard.EmptyClipboard()
+            win32clipboard.SetClipboardText(log_content)
+            win32clipboard.CloseClipboard()
+            print("日志内容已复制到粘贴板")
+        except ImportError:
+            print("无法复制到粘贴板，请安装pyperclip或pywin32模块")
+
 def start_http_server():
     import subprocess
     import webbrowser
@@ -282,7 +300,7 @@ except KeyboardInterrupt:
     print("\\n服务器已关闭")
     sys.exit(0)
 """]
-    
+
     subprocess.Popen(cmd, creationflags=CREATE_NEW_CONSOLE)
     webbrowser.open(f"http://localhost:8000")
     print("浏览器已自动打开，HTTP服务器在新控制台中运行")
@@ -317,6 +335,9 @@ for line in sys.stdin:
             return
         
         async def process():
+            log_buffer = io.StringIO()
+            handler_id = logger.add(log_buffer, format="{time:HH:mm:ss.SSSSSS} | {message}")
+            
             self.log.info(f"<blue><b>[HTTP]</b></blue> <fg 128,128,128><b>{flow.request.method}</b></fg 128,128,128>: <C> {flow.request.url} </C>")
             
             try:
@@ -333,10 +354,12 @@ for line in sys.stdin:
             except:
                 res_decrypted = base64.b64encode(flow.response.content).decode()
                 self.raw_log.info(f"| Unable to decrypt Response: {str(res_decrypted)[:300]}")
+                logger.remove(handler_id)
                 return
 
             mysekai_info = res_decrypted
             if "updatedResources" not in mysekai_info.keys() or "userMysekaiHarvestMaps" not in mysekai_info["updatedResources"].keys():
+                logger.remove(handler_id)
                 return
             
             self.raw_log.info("| Find Harvest Maps Info")
@@ -411,6 +434,10 @@ for line in sys.stdin:
                     self.raw_log.info("-" * 40)
             else:
                 self.raw_log.info("未发现重要掉落物")
+            
+            log_content = log_buffer.getvalue()
+            copy_log_to_clipboard(log_content)
+            logger.remove(handler_id)
             
             if not self.server_started:
                 self.server_started = True

@@ -1,12 +1,12 @@
 # run this file with the following command:
 # pip install loguru msgspec msgpack pycryptodome
 # python mysekai_analyzer.py /path/to/your/mysekai_file
-# mysekai_analyzer.py
 import os
 import sys
 import argparse
 import json
 import subprocess
+import io
 from pathlib import Path
 
 from msgpack import unpackb
@@ -132,7 +132,7 @@ SITE_ID = {
 }
 
 def parse_map(user_data: dict):
-    """解析地图数据，提取稀有物品和唱片信息"""
+    """解析地图数据，提取稀有物品、唱片和设计图纸信息"""
     if "updatedResources" not in user_data or "userMysekaiHarvestMaps" not in user_data["updatedResources"]:
         raise ValueError("Missing required data structure")
     
@@ -143,10 +143,16 @@ def parse_map(user_data: dict):
         for record in user_data["updatedResources"]["userMysekaiMusicRecords"]:
             unlocked_music_ids.add(record["mysekaiMusicRecordId"])
     
+    unlocked_blueprint_ids = set()
+    if "userMysekaiBlueprints" in user_data["updatedResources"]:
+        for blueprint in user_data["updatedResources"]["userMysekaiBlueprints"]:
+            unlocked_blueprint_ids.add(blueprint["mysekaiBlueprintId"])
+    
     processed_map = {}
     rare_items_found = []
     super_rare_items_found = []
     music_records_found = []
+    blueprints_found = []
     
     for map_data in harvest_maps_data:
         if "mysekaiSiteId" not in map_data:
@@ -218,11 +224,23 @@ def parse_map(user_data: dict):
                         'is_unlocked': is_unlocked
                     })
                 
+                if resource_type == "mysekai_blueprint":
+                    blueprint_id = int(resource_id)
+                    is_unlocked = blueprint_id in unlocked_blueprint_ids
+                    blueprints_found.append({
+                        'site_name': site_name,
+                        'location': pos,
+                        'fixture_id': item["fixtureId"],
+                        'blueprint_id': blueprint_id,
+                        'quantity': quantity,
+                        'is_unlocked': is_unlocked
+                    })
+                
                 break
         
         processed_map[site_name] = mp_detail
     
-    return processed_map, rare_items_found, super_rare_items_found, music_records_found
+    return processed_map, rare_items_found, super_rare_items_found, music_records_found, blueprints_found
 
 def unmsgpack(data: bytes) -> dict:
     return unpackb(data, strict_map_key=False) if len(data) > 0 else {}
@@ -231,6 +249,23 @@ def decrypt(ciphertext: bytes, key: bytes, iv: bytes) -> bytes:
     cipher = AES.new(key, AES.MODE_CBC, iv=iv)
     plaintext = unpad(cipher.decrypt(ciphertext), 16)
     return plaintext
+
+def copy_log_to_clipboard(log_content):
+    """将日志内容复制到粘贴板"""
+    try:
+        import pyperclip
+        pyperclip.copy(log_content)
+        logger.info("日志内容已复制到粘贴板")
+    except ImportError:
+        try:
+            import win32clipboard
+            win32clipboard.OpenClipboard()
+            win32clipboard.EmptyClipboard()
+            win32clipboard.SetClipboardText(log_content)
+            win32clipboard.CloseClipboard()
+            logger.info("日志内容已复制到粘贴板")
+        except ImportError:
+            logger.warning("无法复制到粘贴板，请安装pyperclip或pywin32模块")
 
 def start_http_server():
     import webbrowser
@@ -265,12 +300,15 @@ except KeyboardInterrupt:
     print("\\n服务器已关闭")
     sys.exit(0)
 """]
-    
+
     subprocess.Popen(cmd, creationflags=subprocess.CREATE_NEW_CONSOLE)
     webbrowser.open(f"http://localhost:8000")
     print("浏览器已自动打开，HTTP服务器在新控制台中运行")
 
 def process_mysekai_file(file_path: str):
+    log_buffer = io.StringIO()
+    handler_id = logger.add(log_buffer, format="{time:HH:mm:ss.SSSSSS} | {message}")
+    
     try:
         with open(file_path, 'rb') as f:
             file_content = f.read()
@@ -278,7 +316,7 @@ def process_mysekai_file(file_path: str):
         decrypted_data = decrypt(file_content, AES_KEY, AES_IV)
         unpacked_data = unmsgpack(decrypted_data)
         
-        result, rare_items, super_rare_items, music_records = parse_map(unpacked_data)
+        result, rare_items, super_rare_items, music_records, blueprints = parse_map(unpacked_data)
         
         logger.info("| Find Harvest Maps Info")
         
@@ -297,8 +335,19 @@ def process_mysekai_file(file_path: str):
                 logger.info(f"  采集点: {record['fixture_id']}")
                 logger.info(f"  数量: {record['quantity']}")
                 logger.info("-" * 40)
-        else:
-            logger.info("未发现唱片")
+
+        if blueprints:
+            logger.info("=" * 60)
+            logger.info("设计图纸发现")
+            logger.info("=" * 60)
+            for blueprint in blueprints:
+                status = "[已获取]" if blueprint['is_unlocked'] else "[新图纸]"
+                logger.info(f"{status}: 设计图纸 ID: {blueprint['blueprint_id']}")
+                logger.info(f"  地图: {blueprint['site_name']}")
+                logger.info(f"  位置: {blueprint['location']}")
+                logger.info(f"  采集点: {blueprint['fixture_id']}")
+                logger.info(f"  数量: {blueprint['quantity']}")
+                logger.info("-" * 40)
 
         if rare_items:
             logger.info("=" * 60)
@@ -340,11 +389,15 @@ def process_mysekai_file(file_path: str):
         else:
             logger.info("未发现重要掉落物")
         
+        log_content = log_buffer.getvalue()
+        copy_log_to_clipboard(log_content)
+        logger.remove(handler_id)
         start_http_server()
             
-        return result, rare_items, super_rare_items, music_records
+        return result, rare_items, super_rare_items, music_records, blueprints
         
     except Exception as e:
+        logger.remove(handler_id)
         logger.error(f"处理文件时发生错误: {e}")
         raise
 
